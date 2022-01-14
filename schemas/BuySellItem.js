@@ -14,11 +14,8 @@ const product_categories = [
   "Other",
 ];
 
-// Product Category Type
-const product_type = ["BUY_SELL", "LOST_FOUND"];
-
-// Product Schema
-const productSchema = new mongoose.Schema({
+// BuySellItemSchema
+const buySellItemSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
@@ -31,7 +28,7 @@ const productSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  post_datetime: {
+  posted_on: {
     type: Date,
     default: Date.now,
   },
@@ -39,20 +36,11 @@ const productSchema = new mongoose.Schema({
     type: Array,
     default: [],
   },
-  purchase_datetime: {
-    type: Date,
-    required: true,
-  },
   posted_by: { type: mongoose.Schema.ObjectId, ref: "users", required: true },
   category: {
     type: String,
     enum: product_categories,
     default: "Other",
-  },
-  type: {
-    type: String,
-    enum: product_type,
-    required: true,
   },
   available: {
     type: Boolean,
@@ -62,16 +50,12 @@ const productSchema = new mongoose.Schema({
     type: Number,
     default: 1,
   },
-  related_questions: {
-    type: Array,
-    default: [],
-  },
-  found_by_someone: {
-    type: Boolean,
-    default: false,
+  rating: {
+    type: Number,
+    default: 0,
   },
 });
 
-// Exporting the Product schema
-exports.productSchema = productSchema;
+// Exporting the BuySellItemSchema
+exports.buySellItemSchema = buySellItemSchema;
 exports.product_categories = product_categories;
