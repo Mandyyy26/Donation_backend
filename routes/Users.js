@@ -27,9 +27,12 @@ router.get("/users", AdminAuth, async (req, res) => {
       { name: 1, email: 1, profile_picture: 1 }
     );
 
-    return res.status(200).send({ Users: usersList });
+    return res.status(200).send({
+      Users: usersList,
+      messsage: "This list shows all the users in the database.",
+    });
   } catch (error) {
-    return res.status(500).send(messages.serverError);
+    return res.status(500).send({ message: messages.serverError });
   }
 });
 
@@ -40,7 +43,8 @@ router.post("/login", ValidateLogin, async (req, res) => {
     const user = await users.findOne({
       email: req.body.email,
     });
-    if (!user) return res.status(404).send(messages.accountMissing);
+    if (!user)
+      return res.status(404).send({ message: messages.accountMissing });
 
     // check if password is correct
     const isPasswordCorrect = await bcrypt.compare(
@@ -48,7 +52,7 @@ router.post("/login", ValidateLogin, async (req, res) => {
       user.password
     );
     if (!isPasswordCorrect)
-      return res.status(400).send(messages.invalidCredentials);
+      return res.status(400).send({ message: messages.invalidCredentials });
 
     // If request body has push_notification_token, update it in the database
     if (req.body.push_notification_token) {
@@ -66,10 +70,12 @@ router.post("/login", ValidateLogin, async (req, res) => {
     ]);
 
     // Response
-    return res.status(200).send({ User: userData });
+    return res
+      .status(200)
+      .send({ User: userData, message: "Logged in successfully.." });
   } catch (error) {
     // Error Response
-    return res.status(500).send(messages.serverError);
+    return res.status(500).send({ message: messages.serverError });
   }
 });
 
@@ -82,7 +88,8 @@ router.post(
     try {
       // Check if user with same email already exists
       const user = await users.findOne({ email: req.body.email });
-      if (user) return res.status(400).send(messages.emailAlreadyInUse);
+      if (user)
+        return res.status(400).send({ message: messages.emailAlreadyInUse });
 
       // Else create new user instance
       const newUser = new users(req.body);
@@ -101,7 +108,7 @@ router.post(
         // If response is ok, update profile_picture in the database
         if (uploadResponse?.url?.length)
           newUser.profile_picture = uploadResponse.url;
-        else return res.status(500).send(messages.serverError);
+        else return res.status(500).send({ message: messages.serverError });
       }
 
       // Hash the password
@@ -120,7 +127,7 @@ router.post(
       newUser.auth_token = auth_token;
 
       // Save the user
-      // await newUser.save();
+      await newUser.save();
 
       // Create userData
       const newUserData = pick(newUser.toObject(), [
@@ -132,10 +139,13 @@ router.post(
       ]);
 
       // Return response
-      return res.status(200).send({ User: newUserData });
+      return res.status(200).send({
+        User: newUserData,
+        message: "Your account has been created successfully..",
+      });
     } catch (error) {
       // Error response
-      return res.status(500).send(messages.serverError);
+      return res.status(500).send({ message: messages.serverError });
     }
   }
 );
@@ -144,14 +154,15 @@ router.post(
 router.delete("/logout", UserAuth, async (req, res) => {
   try {
     const user = await users.findOne({ _id: req.body.user_details._id });
-    if (!user) return res.status(404).send(messages.accountMissing);
+    if (!user)
+      return res.status(404).send({ message: messages.accountMissing });
 
     user.PushNotificationToken = "";
     await user.save();
 
-    return res.send(messages.loggedtOut);
+    return res.send({ message: messages.loggedtOut });
   } catch (error) {
-    return res.status(500).send(messages.serverError);
+    return res.status(500).send({ message: messages.serverError });
   }
 });
 
@@ -159,7 +170,8 @@ router.delete("/logout", UserAuth, async (req, res) => {
 router.put("/change-password", UserAuth, async (req, res) => {
   try {
     let user = await users.findOne({ _id: req.body.user_details._id });
-    if (!user) return res.status(404).send(messages.accountMissing);
+    if (!user)
+      return res.status(404).send({ message: messages.accountMissing });
 
     const CheckPassword = await bcrypt.compare(
       req.body.CurrentPassword,
@@ -167,15 +179,15 @@ router.put("/change-password", UserAuth, async (req, res) => {
     );
 
     if (!CheckPassword)
-      return res.status(400).send(messages.currentPasswordError);
+      return res.status(400).send({ message: messages.currentPasswordError });
 
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(req.body.NewPassword, salt);
     await user.save();
 
-    return res.status(200).send(messages.passwordChanged);
+    return res.status(200).send({ message: messages.passwordChanged });
   } catch (error) {
-    return res.status(500).send(messages.serverError);
+    return res.status(500).send({ message: messages.serverError });
   }
 });
 

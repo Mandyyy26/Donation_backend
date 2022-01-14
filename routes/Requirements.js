@@ -18,9 +18,12 @@ router.get("/", AdminAuth, async (req, res) => {
   try {
     const requirementsList = await requirements.find();
 
-    return res.status(200).send({ Requirements: requirementsList });
+    return res.status(200).send({
+      Requirements: requirementsList,
+      message: "This list shows list of requirments in Database",
+    });
   } catch (error) {
-    return res.status(500).send(messages.serverError);
+    return res.status(500).send({ message: messages.serverError });
   }
 });
 
@@ -41,9 +44,12 @@ router.post(
 
       await newRequirement.save();
 
-      return res.send(newRequirement);
+      return res.send({
+        requirement: newRequirement,
+        message: "New Requirement Created",
+      });
     } catch (error) {
-      return res.status(500).send(messages.serverError);
+      return res.status(500).send({ message: messages.serverError });
     }
   }
 );
@@ -53,20 +59,22 @@ router.delete("/delete-requirement", UserAuth, async (req, res) => {
   try {
     // Check if requirement exists
     const requirement = await requirements.findById(req.body._id);
-    if (!requirement) return res.status(404).send("requirement not found");
+    if (!requirement)
+      return res.status(404).send({ message: "Requirement Not Found" });
+
+    const owner_id = requirement.posted_by;
+    const user_id = req.body.user_details._id;
 
     // check if posted_by is same as user_details._id
-    if (
-      requirement.posted_by.toString() !== req.body.user_details._id.toString()
-    )
-      return res.status(401).send("Unauthorized");
+    if (owner_id.toString() !== user_id.toString())
+      return res.status(401).send({ message: messages.unauthorized });
 
     // Delete requirement
     await requirement.delete();
 
-    return res.send("Requirement deleted successfully");
+    return res.send({ message: "Requirement deleted successfully" });
   } catch (error) {
-    return res.status(500).send(messages.serverError);
+    return res.status(500).send({ message: messages.serverError });
   }
 });
 
@@ -77,9 +85,12 @@ router.get("/get-own-requirements", UserAuth, async (req, res) => {
       posted_by: req.body.user_details._id,
     });
 
-    return res.status(200).send({ Requirements: requirementsList });
+    return res.status(200).send({
+      Requirements: requirementsList,
+      message: "List of all requirements posted by you.",
+    });
   } catch (error) {
-    return res.status(500).send(messages.serverError);
+    return res.status(500).send({ message: messages.serverError });
   }
 });
 

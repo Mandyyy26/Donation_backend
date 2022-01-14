@@ -13,7 +13,7 @@ const ValidateRequirement = (req, res, next) => {
   const result = RequirementSchema.validate(req.body);
 
   if (result.error)
-    return res.status(400).send(result.error.details[0].message);
+    return res.status(400).send({ message: result.error.details[0].message });
 
   next();
 };

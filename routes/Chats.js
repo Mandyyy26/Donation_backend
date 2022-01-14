@@ -14,18 +14,21 @@ router.get("/get-all-chat-rooms", AdminAuth, async (req, res) => {
   try {
     const chatRoomList = await chats.find();
 
-    return res.status(200).send({ Chats: chatRoomList });
+    return res.status(200).send({
+      Chats: chatRoomList,
+      message: "List of all chat rooms in database.",
+    });
   } catch (error) {
-    return res.status(500).send(messages.serverError);
+    return res.status(500).send({ message: messages.serverError });
   }
 });
 
 // Get or Create a chat room between two users
 router.post("/get-or-create-chat-room", UserAuth, async (req, res) => {
   try {
-    return res.send("Success");
+    return res.send({ message: "Success" });
   } catch (error) {
-    return res.status(500).send(messages.serverError);
+    return res.status(500).send({ message: messages.serverError });
   }
 });
 

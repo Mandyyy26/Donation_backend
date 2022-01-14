@@ -14,27 +14,30 @@ const AdminAuth = async (req, res, next) => {
       let tokenArray = authToken.split(" ");
 
       if (tokenArray.length !== 2)
-        return res.status(403).send(messages.tokenMissing);
+        return res
+          .status(403)
+          .send({ message: { message: messages.tokenMissing } });
 
       const Token = jwt.verify(tokenArray[1], process.env.JWT_Key);
 
       if (Token) {
         const checkUser = await users.findById(Token._id);
 
-        if (!checkUser) return res.status(403).send(messages.unauthorized);
+        if (!checkUser)
+          return res.status(403).send({ message: messages.unauthorized });
 
         if (checkUser.admin === false)
-          return res.status(403).send(messages.unauthorized);
+          return res.status(403).send({ message: messages.unauthorized });
 
         next();
       } else {
-        return res.status(403).send(messages.unauthorized);
+        return res.status(403).send({ message: messages.unauthorized });
       }
     } else {
-      return res.status(403).send(messages.tokenMissing);
+      return res.status(403).send({ message: messages.tokenMissing });
     }
   } catch (error) {
-    return res.status(501).send(messages.serverError);
+    return res.status(501).send({ message: messages.serverError });
   }
 };
 
@@ -47,14 +50,15 @@ const UserAuth = async (req, res, next) => {
       let result = authToken.split(" ");
 
       if (result.length !== 2)
-        return res.status(403).send(messages.tokenMissing);
+        return res.status(403).send({ message: messages.tokenMissing });
 
       const Token = jwt.verify(result[1], process.env.JWT_Key);
 
       if (Token) {
         const checkUser = await users.findById(Token._id);
 
-        if (!checkUser) return res.status(403).send(messages.unauthorized);
+        if (!checkUser)
+          return res.status(403).send({ message: messages.unauthorized });
 
         req.body.user_details = {
           _id: checkUser._id,
@@ -63,10 +67,10 @@ const UserAuth = async (req, res, next) => {
         };
 
         next();
-      } else return res.status(403).send(messages.unauthorized);
-    } else return res.status(403).send(messages.tokenMissing);
+      } else return res.status(403).send({ message: messages.unauthorized });
+    } else return res.status(403).send({ message: messages.tokenMissing });
   } catch (error) {
-    return res.status(501).send(messages.serverError);
+    return res.status(501).send({ message: messages.serverError });
   }
 };
 

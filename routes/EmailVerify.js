@@ -14,27 +14,30 @@ router.get("/", AdminAuth, async (req, res) => {
   try {
     const emailVerifyList = await emailVerify.find();
 
-    return res.status(200).send({ EmailVerifyRequests: emailVerifyList });
+    return res.status(200).send({
+      EmailVerifyRequests: emailVerifyList.abbrev,
+      message: "List of all the email verification requests in database.",
+    });
   } catch (error) {
-    return res.status(500).send(messages.serverError);
+    return res.status(500).send({ message: messages.serverError });
   }
 });
 
 // Send a Email verify Request to a user
 router.post("/send-an-email-verification-request", async (req, res) => {
   try {
-    return res.send("Success");
+    return res.send({ message: "Success" });
   } catch (error) {
-    return res.status(500).send(messages.serverError);
+    return res.status(500).send({ message: messages.serverError });
   }
 });
 
 // Verify a Email verify Request
 router.post("/verify-an-email-request", async (req, res) => {
   try {
-    return res.send("Success");
+    return res.send({ message: "Success" });
   } catch (error) {
-    return res.status(500).send(messages.serverError);
+    return res.status(500).send({ message: messages.serverError });
   }
 });
 
