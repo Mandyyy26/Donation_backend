@@ -29,6 +29,7 @@ const messages = {
   accountDeleted: "Account Deleted Successfully",
   loggedtOut: "Logged Out Successfully",
   associatedAccount: `There's an account associated with this email. Proceed to login.`,
+  fillRestDetails: "Get all other details filled",
 
   // Files
   fileMissing: "File Missing",
