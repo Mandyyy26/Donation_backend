@@ -10,6 +10,26 @@ cloudinary.config({
   secure: true,
 });
 
+// Upload file from remote
+let UploadToCloudinaryRemote = (url, folderName) => {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload(
+      url,
+      {
+        folder: folderName,
+        resource_type: "auto",
+      },
+      (error, result) => {
+        if (result) {
+          resolve(result);
+        } else {
+          reject(error);
+        }
+      }
+    );
+  });
+};
+
 // Upload a file to Cloudinary
 let UploadToCloudinary = (buffer, folderName) => {
   return new Promise((resolve, reject) => {
@@ -54,3 +74,4 @@ exports.UploadToCloudinary = UploadToCloudinary;
 exports.DeleteAFolder = DeleteAFolder;
 exports.cloudinary = cloudinary;
 exports.UploadMultipleToCloudinary = UploadMultipleToCloudinary;
+exports.UploadToCloudinaryRemote = UploadToCloudinaryRemote;
