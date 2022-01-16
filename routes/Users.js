@@ -6,12 +6,16 @@ const multer = require("multer");
 
 // Local imports
 const { AdminAuth, UserAuth } = require("../middlewares/AuthValidator");
+const { get_login_payload_data } = require("../controllers/Users");
 const messages = require("../config/messages");
-const { pick } = require("lodash");
+const {
+  UploadToCloudinary,
+  UploadToCloudinaryRemote,
+} = require("../utils/Cloudinary");
 const { users } = require("../models/Users");
-const { UploadToCloudinary } = require("../utils/Cloudinary");
 const { ValidateRegister } = require("../middlewares/RegisterValidator");
 const { ValidateLogin } = require("../middlewares/LoginValidator");
+const { VerifyTokenID } = require("../utils/GoogleSignIn");
 
 // Initialize router
 const router = express.Router();
@@ -43,16 +47,22 @@ router.post("/login", ValidateLogin, async (req, res) => {
     const user = await users.findOne({
       email: req.body.email,
     });
+
     if (!user)
-      return res.status(404).send({ message: messages.accountMissing });
+      return res
+        .status(404)
+        .send({ message: messages.accountMissing, isLoggedIn: false });
 
     // check if password is correct
     const isPasswordCorrect = await bcrypt.compare(
       req.body.password,
       user.password
     );
+
     if (!isPasswordCorrect)
-      return res.status(400).send({ message: messages.invalidCredentials });
+      return res
+        .status(400)
+        .send({ message: messages.invalidCredentials, isLoggedIn: false });
 
     // If request body has push_notification_token, update it in the database
     if (req.body.push_notification_token) {
@@ -61,21 +71,67 @@ router.post("/login", ValidateLogin, async (req, res) => {
     }
 
     // Create userData
-    const userData = pick(user.toObject(), [
-      "name",
-      "email",
-      "auth_token",
-      "_id",
-      "profile_picture",
-    ]);
+    const userData = get_login_payload_data(user);
 
     // Response
-    return res
-      .status(200)
-      .send({ User: userData, message: "Logged in successfully.." });
+    return res.status(200).send({
+      User: userData,
+      message: "Logged in successfully..",
+      isLoggedIn: true,
+    });
   } catch (error) {
     // Error Response
-    return res.status(500).send({ message: messages.serverError });
+    return res
+      .status(500)
+      .send({ message: messages.serverError, isLoggedIn: false });
+  }
+});
+
+// Login with Google
+router.post("/google-login", async (req, res) => {
+  try {
+    const verifyResponse = await VerifyTokenID(req.body.ID_Token);
+    const email = verifyResponse.getPayload().email;
+
+    if (!email)
+      return res
+        .status(500)
+        .send({ message: "Invalid Email", isLoggedIn: false });
+
+    const user = await users.findOne({
+      email: email,
+    });
+
+    if (!user)
+      return res.status(404).send({
+        message: messages.fillRestDetails,
+        user_details: {
+          email: req.body.user.email,
+          name: req.body.user.name,
+          profile_picture: req.body.user.photo,
+        },
+        isLoggedIn: false,
+        partial_login: true,
+      });
+
+    if (req.body.push_notification_token) {
+      user.push_notification_token = req.body.push_notification_token;
+      await user.save();
+    }
+
+    const userData = get_login_payload_data(user);
+
+    // Response
+    return res.status(200).send({
+      User: userData,
+      message: "Logged in successfully..",
+      isLoggedIn: true,
+    });
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(500)
+      .send({ message: messages.serverError, isLoggedIn: false });
   }
 });
 
@@ -89,7 +145,9 @@ router.post(
       // Check if user with same email already exists
       const user = await users.findOne({ email: req.body.email });
       if (user)
-        return res.status(400).send({ message: messages.emailAlreadyInUse });
+        return res
+          .status(400)
+          .send({ message: messages.emailAlreadyInUse, isLoggedIn: false });
 
       // Else create new user instance
       const newUser = new users(req.body);
@@ -98,17 +156,29 @@ router.post(
       if (req.body.profile_picture) {
         // Destination for profile_picture
         const destination = `Kolegia/users/${newUser._id}/profile_picture`;
+        let uploadResponse;
 
-        // Upload profile_picture to cloudinary
-        const uploadResponse = await UploadToCloudinary(
-          req.body.profile_picture,
-          destination
-        );
+        if (typeof req.body.profile_picture === "string") {
+          // Upload to Cloudinary if profile_picture is a url
+          uploadResponse = await UploadToCloudinaryRemote(
+            req.body.profile_picture,
+            destination
+          );
+        } else {
+          // Upload profile_picture to cloudinary if file is buffer
+          uploadResponse = await UploadToCloudinary(
+            req.body.profile_picture,
+            destination
+          );
+        }
 
         // If response is ok, update profile_picture in the database
         if (uploadResponse?.url?.length)
           newUser.profile_picture = uploadResponse.url;
-        else return res.status(500).send({ message: messages.serverError });
+        else
+          return res
+            .status(500)
+            .send({ message: messages.serverError, isLoggedIn: false });
       }
 
       // Hash the password
@@ -130,22 +200,19 @@ router.post(
       await newUser.save();
 
       // Create userData
-      const newUserData = pick(newUser.toObject(), [
-        "name",
-        "email",
-        "auth_token",
-        "_id",
-        "profile_picture",
-      ]);
+      const newUserData = get_login_payload_data(newUser);
 
       // Return response
       return res.status(200).send({
         User: newUserData,
         message: "Your account has been created successfully..",
+        isLoggedIn: true,
       });
     } catch (error) {
       // Error response
-      return res.status(500).send({ message: messages.serverError });
+      return res
+        .status(500)
+        .send({ message: messages.serverError, isLoggedIn: false });
     }
   }
 );
