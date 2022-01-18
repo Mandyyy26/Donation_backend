@@ -63,15 +63,49 @@ let UploadMultipleToCloudinary = async (files, folderName) => {
 };
 
 // Delete a folder from Cloudinary
-let DeleteAFolder = (folderName) => {
-  cloudinary.api.delete_resources_by_prefix(folderName, function (result) {
-    return result;
+let DeleteAFolder = async (folderName) => {
+  const deleteResponse = await cloudinary.api.delete_resources_by_prefix(
+    folderName
+  );
+
+  return deleteResponse;
+};
+
+// Delete a file from Cloudinary
+let DeleteAFile = (public_id) => {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.destroy(
+      public_id,
+      {
+        invalidate: true,
+      },
+      (error, result) => {
+        if (result) {
+          resolve(result);
+        } else {
+          reject(error);
+        }
+      }
+    );
   });
 };
+
+// function to Delete files based on public_id from cloudinary
+function DeleteMultipleFiles(public_ids) {
+  let promises = [];
+
+  public_ids.forEach((_id) => {
+    promises.push(DeleteAFile(_id));
+  });
+
+  return Promise.all(promises);
+}
 
 // Exports
 exports.UploadToCloudinary = UploadToCloudinary;
 exports.DeleteAFolder = DeleteAFolder;
 exports.cloudinary = cloudinary;
 exports.UploadMultipleToCloudinary = UploadMultipleToCloudinary;
+exports.DeleteAFile = DeleteAFile;
+exports.DeleteMultipleFiles = DeleteMultipleFiles;
 exports.UploadToCloudinaryRemote = UploadToCloudinaryRemote;
