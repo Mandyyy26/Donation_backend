@@ -4,9 +4,9 @@ const express = require("express");
 // Local imports
 const { AdminAuth, UserAuth } = require("../middlewares/AuthValidator");
 const { Get_or_Create_ChatRoom } = require("../controllers/Chats");
+const { lostFoundItems } = require("../models/LostFoundItem");
 const messages = require("../config/messages");
 const { raisedHands } = require("../models/RaisedHands");
-const { lostFoundItems } = require("../models/LostFoundItem");
 
 // Initialize router
 const router = express.Router();
@@ -50,21 +50,18 @@ router.post("/raise-hand-on-an-item", UserAuth, async (req, res) => {
     if (checkRaise)
       return res.status(400).send({ message: messages.already_raised_hands });
 
-    // Check if product is a LOST_FOUND type
-    if (product.type !== "LOST_FOUND")
-      return res.status(400).send({ message: messages.product_not_LOST_FOUND });
-
     // Else create the raised hand
     const raisedHand = await raisedHands(req.body);
     raisedHand.raised_by = req.body.user_details._id;
     raisedHand.product_owner_id = product.posted_by;
+
     let product_details = {
       _id: product._id,
       name: product.name,
       description: product.description,
-      price: product.price,
       files: product.files,
     };
+
     raisedHand.product_details = product_details;
     await raisedHand.save();
 

@@ -5,9 +5,11 @@ const multer = require("multer");
 
 // Local imports
 const { AdminAuth, UserAuth } = require("../middlewares/AuthValidator");
+const { UploadFilesForPayload } = require("../controllers/BuySell");
 const {
   DeleteAFolder,
   UploadMultipleToCloudinary,
+  DeleteMultipleFiles,
 } = require("../utils/Cloudinary");
 const messages = require("../config/messages");
 const { lostFoundItems } = require("../models/LostFoundItem");
@@ -98,14 +100,14 @@ router.get("/get-lost-found-product-details", UserAuth, async (req, res) => {
       return res.status(404).send({ message: messages.product_not_found });
 
     let product_details = product.toObject();
-    product_details.raised_hands = false;
+    product_details.you_raised_hand = false;
 
     // Check if the user has raised the hand
     const raised_hand = await raisedHands.findOne({
       product_id: product_id,
       raised_by: user_id,
     });
-    if (raised_hand) product_details.raised_hands = true;
+    if (raised_hand) product_details.you_raised_hand = true;
 
     // Send the product details
     return res.send({
@@ -133,23 +135,17 @@ router.post(
 
       // If there are files, upload them to Cloudinary
       if (req.body.files.length > 0) {
-        let files = [];
         // Destination for the files
         const destination = `Kolegia/users/${newProduct.posted_by}/lost-found/${newProduct._id}`;
 
         // Upload multiple files to Cloudinary
-        const uploadResponse = await UploadMultipleToCloudinary(
+        const uploaded_files = await UploadFilesForPayload(
           req.body.files,
           destination
         );
 
-        // take every object's secure_url and assign it to the newProduct.files array
-        uploadResponse.forEach((file) => {
-          if (file.secure_url) files.push(file.secure_url);
-        });
-
         // Assign the files array to the newProduct.files
-        newProduct.files = files;
+        newProduct.files = uploaded_files;
       }
 
       // Saving the new product to the database
@@ -161,6 +157,7 @@ router.post(
         message: "New lost-found Product Created",
       });
     } catch (error) {
+      console.log(error);
       return res.status(500).send({ message: messages.serverError });
     }
   }
@@ -193,26 +190,41 @@ router.put(
         if (key !== "files") product[key] = req.body[key];
       });
 
+      // Check if after uploading and deleting there are any file left or not
+      let currentFiles = product.files.length;
+      let toUpload = req.body.files?.length ?? 0;
+      let toDelete = req.body.to_be_deleted?.length ?? 0;
+
+      if (currentFiles + toUpload - toDelete < 1)
+        return res.status(400).send({ message: messages.filerequired });
+
       // If files array is not empty, upload them to Cloudinary and push it to the product.files array
-      if (req.body.files.length > 0) {
-        let files = [...product.files];
+      if (toUpload > 0) {
         // Destination for the files
         const destination = `Kolegia/users/${product.posted_by}/lost-found/${product._id}`;
 
         // Upload multiple files to Cloudinary
-        const uploadResponse = await UploadMultipleToCloudinary(
+        const uploaded_files = await UploadFilesForPayload(
           req.body.files,
           destination
         );
 
-        // take every object's secure_url and assign it to the newProduct.files array
-        uploadResponse.forEach((file) => {
-          if (file.secure_url) files.push(file.secure_url);
-        });
-
         // Assign the files array to the newProduct.files
-        product.files = files;
+        product.files = [...product.files, ...uploaded_files];
       }
+
+      // If there are files that need to be deleted, delete them from Cloudinary
+      if (toDelete > 0) {
+        // Delete the files from Cloudinary
+        await DeleteMultipleFiles(req.body.to_be_deleted);
+
+        // Remove the files from the product.files array whose _id is in the req.body.to_be_deleted array
+        product.files = product.files.filter(
+          (file) => !req.body.to_be_deleted.includes(file.public_id)
+        );
+      }
+
+      await product.save();
 
       return res.send({ product: product, message: "Product Updated" });
     } catch (error) {
@@ -238,7 +250,7 @@ router.delete("/delete-lost-found-product", UserAuth, async (req, res) => {
       return res.status(401).send({ message: messages.unauthorized });
 
     // Delete folder from cloudinary
-    DeleteAFolder(
+    await DeleteAFolder(
       `Kolegia/users/${product.posted_by}/lost-found/${product._id}`
     );
 
@@ -289,6 +301,9 @@ router.put("/mark-as-found", UserAuth, async (req, res) => {
     // check if product is already marked as found
     if (product.found_by_someone)
       return res.status(200).send({ message: messages.prod_marked_already });
+
+    // Delete all raisedHands on this product
+    await raisedHands.deleteMany({ product_id: product._id });
 
     // Mark product as found
     product.found_by_someone = true;

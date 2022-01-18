@@ -173,8 +173,8 @@ router.post(
         }
 
         // If response is ok, update profile_picture in the database
-        if (uploadResponse?.url?.length)
-          newUser.profile_picture = uploadResponse.url;
+        if (uploadResponse?.secure_url?.length)
+          newUser.profile_picture = uploadResponse.secure_url;
         else
           return res
             .status(500)
@@ -209,6 +209,7 @@ router.post(
         isLoggedIn: true,
       });
     } catch (error) {
+      console.log(error);
       // Error response
       return res
         .status(500)
