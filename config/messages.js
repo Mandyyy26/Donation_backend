@@ -33,6 +33,8 @@ const messages = {
 
   // Files
   fileMissing: "File Missing",
+  filerequired: "Atleast one file is required",
+  fileArrayRequired: "File Array Required",
 
   // chats
   chatMissing: "Chat Not Found",
