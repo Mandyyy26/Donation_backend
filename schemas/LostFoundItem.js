@@ -7,9 +7,6 @@ const lostFoundSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  estimated_price: {
-    type: Number,
-  },
   description: {
     type: String,
     required: true,
@@ -21,10 +18,6 @@ const lostFoundSchema = new mongoose.Schema({
   files: {
     type: Array,
     default: [],
-  },
-  purchase_datetime: {
-    type: Date,
-    required: true,
   },
   posted_by: { type: mongoose.Schema.ObjectId, ref: "users", required: true },
   related_questions: {
