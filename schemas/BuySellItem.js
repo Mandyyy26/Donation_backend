@@ -24,10 +24,6 @@ const buySellItemSchema = new mongoose.Schema({
     default: [],
   },
   posted_by: { type: mongoose.Schema.ObjectId, ref: "users", required: true },
-  rating: {
-    type: Number,
-    default: 0,
-  },
 });
 
 // Exporting the BuySellItemSchema

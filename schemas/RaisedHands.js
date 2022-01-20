@@ -3,9 +3,9 @@ const mongoose = require("mongoose");
 
 // Requirement Schema
 const raisedHandsSchema = new mongoose.Schema({
-  answers: {
-    type: Array,
-    default: [],
+  note: {
+    type: String,
+    default: "",
   },
   product_id: {
     type: mongoose.Schema.ObjectId,

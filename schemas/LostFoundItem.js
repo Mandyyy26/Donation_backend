@@ -20,10 +20,6 @@ const lostFoundSchema = new mongoose.Schema({
     default: [],
   },
   posted_by: { type: mongoose.Schema.ObjectId, ref: "users", required: true },
-  related_questions: {
-    type: Array,
-    default: [],
-  },
   found_by_someone: {
     type: Boolean,
     default: false,
