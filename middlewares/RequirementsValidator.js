@@ -5,7 +5,6 @@ const Joi = require("joi");
 const RequirementSchema = Joi.object({
   title: Joi.string().required(),
   description: Joi.string().required(),
-  expires_on: Joi.date(),
 }).options({ allowUnknown: true });
 
 // function to validate the body

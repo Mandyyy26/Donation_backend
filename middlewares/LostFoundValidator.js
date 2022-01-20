@@ -10,7 +10,7 @@ const LostFoundValidSchema = Joi.object({
   user_details: Joi.object(),
   to_be_deleted: Joi.array(),
   product_id: Joi.string(),
-}).options({ allowUnknown: false });
+}).options({ allowUnknown: true });
 
 const ValidateLostFound = (req, res, next) => {
   let files = [];
