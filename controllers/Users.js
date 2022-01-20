@@ -1,15 +1,14 @@
 // Packages Imports
-const { pick } = require("lodash");
+const { omit } = require("lodash");
 
 // function to get the user data while logging in
 function get_login_payload_data(user = {}) {
   // Create payload
-  const payload = pick(user.toObject(), [
-    "name",
-    "email",
-    "auth_token",
-    "_id",
-    "profile_picture",
+  const payload = omit(user.toObject(), [
+    "password",
+    "admin",
+    "__v",
+    "push_notification_token",
   ]);
 
   return payload;
