@@ -93,20 +93,9 @@ router.post("/accept-raised-hand", UserAuth, async (req, res) => {
         .status(400)
         .send({ message: "You cannot accept your own request" });
 
-    // construct a message text from the answers array by looping thrugh it and leave a space between each answer
-    let message = "";
-
-    // loop through the answers array and append each answer to the message
-    if (raisedHand.answers.length > 0) {
-      for (let i = 0; i < raisedHand.answers.length; i++) {
-        message += `${i + 1}.) ${raisedHand.answers[i].question} \n`;
-        message += `Ans. ${raisedHand.answers[i].answer}\n`;
-      }
-    }
-
     // get_or_create the chatRoom
     const getChatRoom = await Get_or_Create_ChatRoom(raised_by, owner, {
-      message,
+      message: raisedHand.note,
     });
 
     // Delete the raised hand request as soon as it is accepted

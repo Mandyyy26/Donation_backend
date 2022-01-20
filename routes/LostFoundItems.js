@@ -157,7 +157,6 @@ router.post(
         message: "New lost-found Product Created",
       });
     } catch (error) {
-      console.log(error);
       return res.status(500).send({ message: messages.serverError });
     }
   }
@@ -271,9 +270,11 @@ router.get("/get-own-lost-found-list", UserAuth, async (req, res) => {
     const user_id = req.body.user_details._id;
 
     // Get all products which has posted_by equal to user_id
-    const user_products = await lostFoundItems.find({
-      posted_by: user_id,
-    });
+    const user_products = await lostFoundItems
+      .find({
+        posted_by: user_id,
+      })
+      .sort({ _id: -1 });
 
     // Return the products list
     return res.send({ Products: user_products });

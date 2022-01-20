@@ -93,7 +93,10 @@ router.get("/get-buysell-product-details", UserAuth, async (req, res) => {
     product_details.raised_hands = false;
 
     // Send the product details
-    return res.send(product_details);
+    return res.send({
+      Product: product_details,
+      message: "These are the latest product details",
+    });
   } catch (error) {
     return res.status(500).send({ message: messages.serverError });
   }
@@ -109,15 +112,13 @@ router.post(
     try {
       // Create new product instance
       const newProduct = new buySellItems(req.body);
-
-      // assign posted_by to user_details _id
       newProduct.posted_by = req.body.user_details._id;
+
+      // destination for the files
+      const destination = `Kolegia/users/${newProduct.posted_by}/buy-sell/${newProduct._id}`;
 
       // If there are files, upload them to Cloudinary
       if (req.body.files.length > 0) {
-        // Destination for the files
-        const destination = `Kolegia/users/${newProduct.posted_by}/buy-sell/${newProduct._id}`;
-
         // Upload multiple files to Cloudinary
         const uploaded_files = await UploadFilesForPayload(
           req.body.files,
@@ -133,7 +134,7 @@ router.post(
 
       // Return the new product
       return res.send({
-        product: newProduct,
+        Product: newProduct,
         message: "New Buy-Sell Product Created",
       });
     } catch (error) {
@@ -174,14 +175,16 @@ router.put(
       let toUpload = req.body.files?.length ?? 0;
       let toDelete = req.body.to_be_deleted?.length ?? 0;
 
+      // Destination for the files
+      const destination = `Kolegia/users/${product.posted_by}/buy-sell/${product._id}`;
+
       if (currentFiles + toUpload - toDelete < 1)
-        return res.status(400).send({ message: messages.filerequired });
+        return res.status(400).send({
+          message: "Your product should have atleast one image in it.",
+        });
 
       // If files array is not empty, upload them to Cloudinary and push it to the product.files array
       if (toUpload > 0) {
-        // Destination for the files
-        const destination = `Kolegia/users/${product.posted_by}/buy-sell/${product._id}`;
-
         // Upload multiple files to Cloudinary
         const uploaded_files = await UploadFilesForPayload(
           req.body.files,
@@ -207,7 +210,6 @@ router.put(
 
       return res.send({ product: product, message: "Product Updated" });
     } catch (error) {
-      console.log(error);
       return res.status(500).send({ message: messages.serverError });
     }
   }
@@ -251,9 +253,11 @@ router.get("/get-own-buy-sell-list", UserAuth, async (req, res) => {
     const user_id = req.body.user_details._id;
 
     // Get all products which has posted_by equal to user_id
-    const user_products = await buySellItems.find({
-      posted_by: user_id,
-    });
+    const user_products = await buySellItems
+      .find({
+        posted_by: user_id,
+      })
+      .sort({ _id: -1 });
 
     // Return the products list
     return res.send({

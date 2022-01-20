@@ -10,9 +10,6 @@ const { ValidateRequirement } = require("../middlewares/RequirementsValidator");
 // Initialize router
 const router = express.Router();
 
-// Constants
-const MAX_TIME_LIMIT = 30; // in days
-
 // Get List of all requirements in Database for Admin only
 router.get("/", AdminAuth, async (req, res) => {
   try {
@@ -38,10 +35,6 @@ router.post(
 
       newRequirement.posted_by = req.body.user_details._id;
 
-      newRequirement.expires_on = req.body.expires_on
-        ? req.body.expires_on
-        : new Date(new Date().setDate(new Date().getDate() + MAX_TIME_LIMIT));
-
       await newRequirement.save();
 
       return res.send({
@@ -54,11 +47,57 @@ router.post(
   }
 );
 
+// Edit a requirement in Database
+router.put(
+  "/edit-a-requirement",
+  UserAuth,
+  ValidateRequirement,
+  async (req, res) => {
+    try {
+      // check if requirement_id is present in body
+      if (!req.body.requirement_id)
+        return res.status(400).send({ message: "Requirement ID is required" });
+
+      // Check if requirement exists
+      const requirement = await requirements.findById(req.body.requirement_id);
+      if (!requirement)
+        return res.status(404).send({ message: "Requirement not found" });
+
+      // Constants
+      let requirement_owner = requirement.posted_by;
+      let user_id = req.body.user_details._id;
+
+      // Check if user is the owner of requirement
+      if (requirement_owner.toString() !== user_id._id.toString())
+        return res.status(401).send({ message: messages.unauthorized });
+
+      // Update the requirement
+      if (req.body.title) requirement.title = req.body.title;
+      if (req.body.description) requirement.description = req.body.description;
+
+      // Save the requirement
+      await requirement.save();
+
+      // Response
+      return res.send({
+        requirement: requirement,
+        message: "Requirement Updated",
+      });
+    } catch (error) {
+      return res.status(500).send({ message: messages.serverError });
+    }
+  }
+);
+
 // Delete a requirement
 router.delete("/delete-requirement", UserAuth, async (req, res) => {
   try {
+    // Check if requirement_id is present in body
+    if (!req.body.requirement_id)
+      return res.status(400).send({ message: "Requirement ID is required" });
+
     // Check if requirement exists
-    const requirement = await requirements.findById(req.body._id);
+    const requirement = await requirements.findById(req.body.requirement_id);
     if (!requirement)
       return res.status(404).send({ message: "Requirement Not Found" });
 
@@ -81,9 +120,12 @@ router.delete("/delete-requirement", UserAuth, async (req, res) => {
 // Get all requirements posted by user
 router.get("/get-own-requirements", UserAuth, async (req, res) => {
   try {
-    const requirementsList = await requirements.find({
-      posted_by: req.body.user_details._id,
-    });
+    // find all requirements posted by user and also sort it by _id
+    const requirementsList = await requirements
+      .find({
+        posted_by: req.body.user_details._id,
+      })
+      .sort({ _id: -1 });
 
     return res.status(200).send({
       Requirements: requirementsList,

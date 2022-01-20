@@ -128,7 +128,6 @@ router.post("/google-login", async (req, res) => {
       isLoggedIn: true,
     });
   } catch (error) {
-    console.log(error);
     return res
       .status(500)
       .send({ message: messages.serverError, isLoggedIn: false });
@@ -209,7 +208,6 @@ router.post(
         isLoggedIn: true,
       });
     } catch (error) {
-      console.log(error);
       // Error response
       return res
         .status(500)
@@ -237,6 +235,12 @@ router.delete("/logout", UserAuth, async (req, res) => {
 // Change Password endpoint
 router.put("/change-password", UserAuth, async (req, res) => {
   try {
+    // if CurrentPassword & NewPassword is not present in req.body return error
+    if (!req.body.CurrentPassword || !req.body.NewPassword)
+      return res.status(400).send({
+        message: "Both current password and new password is required",
+      });
+
     let user = await users.findOne({ _id: req.body.user_details._id });
     if (!user)
       return res.status(404).send({ message: messages.accountMissing });
@@ -258,6 +262,20 @@ router.put("/change-password", UserAuth, async (req, res) => {
     return res.status(500).send({ message: messages.serverError });
   }
 });
+
+router.put(
+  "/edit-profile",
+  upload.single("profile_picture"),
+  UserAuth,
+  async (req, res) => {
+    try {
+      return res.send("Success");
+    } catch (error) {
+      console.log(error);
+      return res.status(500).send("Error");
+    }
+  }
+);
 
 // export router
 module.exports = router;

@@ -15,7 +15,7 @@ router.get("/", AdminAuth, async (req, res) => {
     const emailVerifyList = await emailVerify.find();
 
     return res.status(200).send({
-      EmailVerifyRequests: emailVerifyList.abbrev,
+      EmailVerifyRequests: emailVerifyList,
       message: "List of all the email verification requests in database.",
     });
   } catch (error) {
@@ -26,6 +26,12 @@ router.get("/", AdminAuth, async (req, res) => {
 // Send a Email verify Request to a user
 router.post("/send-an-email-verification-request", async (req, res) => {
   try {
+    // Check if email is present in the request body
+    if (!req.body.email)
+      return res.status(400).send({ message: messages.emailRequired });
+
+    // check if there's a user
+
     return res.send({ message: "Success" });
   } catch (error) {
     return res.status(500).send({ message: messages.serverError });
