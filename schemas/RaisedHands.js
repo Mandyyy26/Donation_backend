@@ -23,10 +23,6 @@ const raisedHandsSchema = new mongoose.Schema({
     required: true,
   },
   raised_datetime: { type: Date, default: Date.now, required: true },
-  product_details: {
-    type: {},
-    default: {},
-  },
 });
 
 // Exporting the Requirement schema

@@ -36,6 +36,10 @@ const userSchema = new mongoose.Schema({
     required: true,
     enum: Hostels,
   },
+  room_number: {
+    type: String,
+    required: true,
+  },
   phone: {
     type: String,
     required: true,
@@ -52,6 +56,10 @@ const userSchema = new mongoose.Schema({
   push_notification_token: {
     type: String,
     default: "",
+  },
+  send_push_notification: {
+    type: Boolean,
+    default: true,
   },
   password: {
     type: String,
