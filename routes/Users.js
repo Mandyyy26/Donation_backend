@@ -16,6 +16,7 @@ const { users } = require("../models/Users");
 const { ValidateRegister } = require("../middlewares/RegisterValidator");
 const { ValidateLogin } = require("../middlewares/LoginValidator");
 const { VerifyTokenID } = require("../utils/GoogleSignIn");
+const { ValidateEditProfile } = require("../middlewares/EditProfileValidator");
 
 // Initialize router
 const router = express.Router();
@@ -150,11 +151,11 @@ router.post(
 
       // Else create new user instance
       const newUser = new users(req.body);
+      // Destination for profile_picture
+      const destination = `Kolegia/users/${newUser._id}/profile_picture`;
 
       // Upload profile_picture if present it req.body
       if (req.body.profile_picture) {
-        // Destination for profile_picture
-        const destination = `Kolegia/users/${newUser._id}/profile_picture`;
         let uploadResponse;
 
         if (typeof req.body.profile_picture === "string") {
@@ -263,19 +264,97 @@ router.put("/change-password", UserAuth, async (req, res) => {
   }
 });
 
+// Edit Profile Endpoint
 router.put(
   "/edit-profile",
   upload.single("profile_picture"),
   UserAuth,
+  ValidateEditProfile,
   async (req, res) => {
     try {
-      return res.send("Success");
+      // Get the user_id
+      const user_id = req.body.user_details._id;
+
+      // find the user
+      const profile = await users.findById(user_id);
+      if (!profile)
+        return res.status(404).send({ message: messages.accountMissing });
+
+      // Destination for profile_picture
+      const destination = `Kolegia/users/${user_id.toString()}/profile_picture`;
+
+      // Check if email, phone and room_number is already in use
+      const user = await users
+        .findOne()
+        .or([
+          { email: req.body.email },
+          { phone: req.body.phone },
+          { room_number: req.body.room_number },
+        ]);
+
+      if (user)
+        return res
+          .status(400)
+          .send({ message: "Email, Phone and Room Number must be unique" });
+
+      // Map all the fields to update if they exist
+      if (req.body.name) profile.name = req.body.name;
+      if (req.body.email) profile.email = req.body.email;
+      if (req.body.hostel) profile.hostel = req.body.hostel;
+      if (req.body.phone) profile.phone = req.body.phone;
+      if (req.body.room_number) profile.room_number = req.body.room_number;
+
+      // Upload profile_picture if present it req.body
+      if (req.body.profile_picture) {
+        let uploadResponse = await UploadToCloudinary(
+          req.body.profile_picture,
+          destination
+        );
+
+        // If response is ok, update profile_picture in the database
+        if (uploadResponse?.secure_url?.length)
+          profile.profile_picture = uploadResponse.secure_url;
+        else return res.status(500).send({ message: messages.serverError });
+      }
+
+      // Create userData
+      const userData = get_login_payload_data(profile);
+
+      // Save the user
+      await profile.save();
+
+      return res.send({
+        User: userData,
+        message: "Updated Profile Successfully.",
+      });
     } catch (error) {
-      console.log(error);
-      return res.status(500).send("Error");
+      return res.status(500).send({ message: messages.serverError });
     }
   }
 );
+
+// Turn off/on push notification for a User depending on the status
+router.put("/toggle-push-notifications", UserAuth, async (req, res) => {
+  try {
+    const user_id = req.body.user_details._id;
+
+    // find the user
+    const user = await users.findById(user_id);
+
+    // Update send_push_notification status to opposite
+    user.send_push_notification = !user.send_push_notification;
+
+    // Save the user
+    await user.save();
+
+    return res.send({
+      current_status: user.send_push_notification,
+      message: "Status has been updated successfully.",
+    });
+  } catch (error) {
+    return res.status(500).send({ message: messages.serverError });
+  }
+});
 
 // export router
 module.exports = router;

@@ -24,6 +24,69 @@ router.get("/", AdminAuth, async (req, res) => {
   }
 });
 
+// Get requirement feed in batches of 10, according to the time they were posted
+router.get("/get-requirement-feed", async (req, res) => {
+  try {
+    // Get the requirements in batches of 10 after this _id
+    let after = req.query?.after
+      ? mongoose.Types.ObjectId(req.query.after)
+      : null;
+
+    // Create a filter if last_post_id is present
+    let after_this_id_filter = after ? { _id: { $lt: after } } : {};
+
+    const requirments_feed_list = await requirements.aggregate([
+      {
+        // Match the requirements with the filter
+        $match: {
+          ...after_this_id_filter,
+        },
+      },
+      // sort them in descending order of _id
+      {
+        $sort: {
+          _id: -1,
+        },
+      },
+      // limit to 10
+      {
+        $limit: 10,
+      },
+      // Replace posted_by_user_name field with the user's name
+      {
+        $lookup: {
+          from: "users",
+          localField: "posted_by",
+          foreignField: "_id",
+          as: "posted_by_user_name",
+        },
+      },
+      {
+        $unwind: "$posted_by_user_name",
+      },
+      // Keep only name in posted_by field and other required fields
+      {
+        $project: {
+          _id: 1,
+          title: 1,
+          description: 1,
+          posted_on: 1,
+          posted_by: 1,
+          posted_by_user_name: "$posted_by_user_name.name",
+        },
+      },
+    ]);
+
+    // return the list
+    return res.send({
+      requirements: requirments_feed_list,
+      message: "Feed for Requirments",
+    });
+  } catch (error) {
+    return res.status(500).send({ message: messages.serverError });
+  }
+});
+
 // Create a new requirement in Database
 router.post(
   "/create-a-requirement",

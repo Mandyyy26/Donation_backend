@@ -10,6 +10,7 @@ const { DeleteMultipleFiles, DeleteAFolder } = require("../utils/Cloudinary");
 const messages = require("../config/messages");
 const { UploadFilesForPayload } = require("../controllers/BuySell");
 const { ValidateBuySell } = require("../middlewares/BuySellValidator");
+const { users } = require("../models/Users");
 
 // Initialize router
 const router = express.Router();
@@ -32,12 +33,15 @@ router.get("/", AdminAuth, async (req, res) => {
 });
 
 // Get buy-sell feed in batches of 10, according to the time they were posted
-router.get("/get-buy-sell-feed", UserAuth, async (req, res) => {
+router.get("/get-buy-sell-feed", async (req, res) => {
   try {
     // Get the products in batches of 10 after this _id
     let after = req.query?.after
       ? mongoose.Types.ObjectId(req.query.after)
       : null;
+
+    // get data in count of
+    let count = req.query?.count || 10;
 
     // Create a filter if last_post_id is present
     let after_this_id_filter = after ? { _id: { $lt: after } } : {};
@@ -55,14 +59,33 @@ router.get("/get-buy-sell-feed", UserAuth, async (req, res) => {
           _id: -1,
         },
       },
-      // limit to 10
+      // limit to count
       {
-        $limit: 10,
+        $limit: count,
       },
-      // Remove unneccecary fields
+      // Replace posted_by field with the user's name
+      {
+        $lookup: {
+          from: "users",
+          localField: "posted_by",
+          foreignField: "_id",
+          as: "posted_by_user_name",
+        },
+      },
+      {
+        $unwind: "$posted_by_user_name",
+      },
+      // Keep only name in posted_by field and other required fields
       {
         $project: {
-          __v: 0,
+          _id: 1,
+          name: 1,
+          price: 1,
+          description: 1,
+          files: 1,
+          posted_on: 1,
+          posted_by: 1,
+          posted_by_user_name: "$posted_by_user_name.name",
         },
       },
     ]);
@@ -75,7 +98,7 @@ router.get("/get-buy-sell-feed", UserAuth, async (req, res) => {
 });
 
 // Get Product details
-router.get("/get-buysell-product-details", UserAuth, async (req, res) => {
+router.get("/get-buysell-product-details", async (req, res) => {
   try {
     // check if product_id is present in query
     if (!req.query.product_id)
@@ -85,12 +108,17 @@ router.get("/get-buysell-product-details", UserAuth, async (req, res) => {
     const product_id = req.query.product_id;
 
     // Check if product exists
-    const product = await buySellItems.findById(product_id);
+    const product = await buySellItems.findById(product_id, {
+      __v: 0,
+    });
     if (!product)
       return res.status(404).send({ message: messages.product_not_found });
 
     let product_details = product.toObject();
-    product_details.raised_hands = false;
+
+    // get the owner of the product
+    const owner = await users.findById(product.posted_by);
+    if (owner) product_details.posted_by = owner.name;
 
     // Send the product details
     return res.send({
@@ -132,9 +160,13 @@ router.post(
       // Saving the new product to the database
       await newProduct.save();
 
+      let product_details = newProduct.toObject();
+
+      product_details.posted_by = req.body.user_details.name;
+
       // Return the new product
       return res.send({
-        Product: newProduct,
+        Product: product_details,
         message: "New Buy-Sell Product Created",
       });
     } catch (error) {

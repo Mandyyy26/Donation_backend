@@ -6,15 +6,12 @@ const multer = require("multer");
 // Local imports
 const { AdminAuth, UserAuth } = require("../middlewares/AuthValidator");
 const { UploadFilesForPayload } = require("../controllers/BuySell");
-const {
-  DeleteAFolder,
-  UploadMultipleToCloudinary,
-  DeleteMultipleFiles,
-} = require("../utils/Cloudinary");
+const { DeleteAFolder, DeleteMultipleFiles } = require("../utils/Cloudinary");
 const messages = require("../config/messages");
 const { lostFoundItems } = require("../models/LostFoundItem");
 const { raisedHands } = require("../models/RaisedHands");
 const { ValidateLostFound } = require("../middlewares/LostFoundValidator");
+const { users } = require("../models/Users");
 
 // Initialize router
 const router = express.Router();
@@ -37,12 +34,15 @@ router.get("/", AdminAuth, async (req, res) => {
 });
 
 // Get lost-found feed in batches of 10, according to the time they were posted
-router.get("/get-lost-found-feed", UserAuth, async (req, res) => {
+router.get("/get-lost-found-feed", async (req, res) => {
   try {
     // Get the products in batches of 10 after this _id
     let after = req.query?.after
       ? mongoose.Types.ObjectId(req.query.after)
       : null;
+
+    // get data in count of
+    let count = req.query?.count || 10;
 
     // Create a filter if last_post_id is present
     let after_this_id_filter = after ? { _id: { $lt: after } } : {};
@@ -52,7 +52,6 @@ router.get("/get-lost-found-feed", UserAuth, async (req, res) => {
         // Match the products with the filter
         $match: {
           ...after_this_id_filter,
-          found_by_someone: false,
         },
       },
       // sort them in descending order of _id
@@ -61,14 +60,32 @@ router.get("/get-lost-found-feed", UserAuth, async (req, res) => {
           _id: -1,
         },
       },
-      // limit to 10
+      // limit to count
       {
-        $limit: 10,
+        $limit: count,
       },
-      // Remove unneccecary fields
+      // Replace posted_by field with the user's name
+      {
+        $lookup: {
+          from: "users",
+          localField: "posted_by",
+          foreignField: "_id",
+          as: "posted_by_user_name",
+        },
+      },
+      {
+        $unwind: "$posted_by",
+      },
+      // Keep only name in posted_by field and other required fields
       {
         $project: {
-          __v: 0,
+          _id: 1,
+          name: 1,
+          description: 1,
+          files: 1,
+          posted_on: 1,
+          posted_by: 1,
+          posted_by_user_name: "$posted_by_user_name.name",
         },
       },
     ]);
@@ -92,22 +109,31 @@ router.get("/get-lost-found-product-details", UserAuth, async (req, res) => {
 
     // constants
     const product_id = req.query.product_id;
-    const user_id = req.body.user_details._id;
+    const user_id = req.body.user_details?._id ?? null;
 
     // Check if product exists
-    const product = await lostFoundItems.findById(product_id);
+    const product = await lostFoundItems.findById(product_id, {
+      __v: 0,
+    });
     if (!product)
       return res.status(404).send({ message: messages.product_not_found });
 
     let product_details = product.toObject();
+
+    // get the owner of the product
+    const owner = await users.findById(product.posted_by, { name: 1 });
+    if (owner) product_details.posted_by = owner.name;
+
     product_details.you_raised_hand = false;
 
-    // Check if the user has raised the hand
-    const raised_hand = await raisedHands.findOne({
-      product_id: product_id,
-      raised_by: user_id,
-    });
-    if (raised_hand) product_details.you_raised_hand = true;
+    if (user_id) {
+      // Check if the user has raised the hand
+      const raised_hand = await raisedHands.findOne({
+        product_id: product_id,
+        raised_by: user_id,
+      });
+      if (raised_hand) product_details.you_raised_hand = true;
+    }
 
     // Send the product details
     return res.send({
@@ -151,9 +177,13 @@ router.post(
       // Saving the new product to the database
       await newProduct.save();
 
+      let product_details = newProduct.toObject();
+
+      product_details.posted_by = req.body.user_details.name;
+
       // Return the new product
       return res.send({
-        product: newProduct,
+        Product: product_details,
         message: "New lost-found Product Created",
       });
     } catch (error) {

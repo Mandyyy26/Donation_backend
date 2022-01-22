@@ -55,23 +55,91 @@ router.post("/raise-hand-on-an-item", UserAuth, async (req, res) => {
     raisedHand.raised_by = req.body.user_details._id;
     raisedHand.product_owner_id = product.posted_by;
 
+    await raisedHand.save();
+
+    let payload = raisedHand.toObject();
+
     let product_details = {
       _id: product._id,
       name: product.name,
       description: product.description,
       files: product.files,
     };
-
-    raisedHand.product_details = product_details;
-    await raisedHand.save();
+    payload.product_details = product_details;
 
     // return the raised hand
     return res.send({
-      raisedHand: raisedHand,
+      raisedHand: payload,
       message: "Sucessfully raised a hand on this item",
     });
   } catch (error) {
     return res.status(500).send({ message: messages.serverError });
+  }
+});
+
+// Get all responses for a Lost and Found Item you posted.
+router.get("/get-raised-responses", UserAuth, async (req, res) => {
+  try {
+    let user_id = req.body.user_details._id;
+
+    // Get all raised hands for this user by the field of product_owner_id in raisedHands model
+    const raisedHandsList = await raisedHands.aggregate([
+      // Match product_owner_id with the user_id
+      {
+        $match: {
+          product_owner_id: user_id,
+        },
+      },
+      // Join with the product model
+      {
+        $lookup: {
+          from: "lostfounditems",
+          localField: "product_id",
+          foreignField: "_id",
+          as: "product_details",
+        },
+      },
+      // Join with the user model and get the user details of the product owner field name product_owner_id
+      {
+        $lookup: {
+          from: "users",
+          localField: "product_owner_id",
+          foreignField: "_id",
+          as: "product_owner_details",
+        },
+      },
+      // Unwind the product_details array
+      {
+        $unwind: "$product_details",
+      },
+      // Unwind the product_owner_details array
+      {
+        $unwind: "$product_owner_details",
+      },
+      // Keep only the required fields
+      {
+        $project: {
+          _id: 1,
+          product_id: 1,
+          product_owner_id: 1,
+          raised_by: 1,
+          raised_datetime: 1,
+          note: 1,
+          product_details: 1,
+          product_owner_details: {
+            name: 1,
+            profile_picture: 1,
+          },
+        },
+      },
+    ]);
+
+    return res.send({
+      raised_hands: raisedHandsList,
+      message: "Successfully fetched raised hands",
+    });
+  } catch (error) {
+    return res.status(500).send("Error");
   }
 });
 
@@ -86,6 +154,7 @@ router.post("/accept-raised-hand", UserAuth, async (req, res) => {
     // Constants
     const owner = req.body.user_details._id;
     const raised_by = raisedHand.raised_by;
+    const product_owner_id = raisedHand.product_owner_id;
 
     // Raised hand owner and user should not be same
     if (owner.toString() === raised_by.toString())
@@ -93,9 +162,25 @@ router.post("/accept-raised-hand", UserAuth, async (req, res) => {
         .status(400)
         .send({ message: "You cannot accept your own request" });
 
+    if (owner.toString() !== product_owner_id.toString())
+      return res
+        .status(400)
+        .send({ message: "You cannot accept this request" });
+
+    // Get the Product
+    const product = await lostFoundItems.findById(raisedHand.product_id);
+    if (!product)
+      return res
+        .status(400)
+        .send({ message: "Product ID invalid or maybe deleted." });
+
+    // Construct a message with Item name and Description
+    // Also add the note that raisedhand has
+    let message = `Lost Found Raised Hand Details\nI\nItem Name - ${product.name}\nDescription - ${product.description}\n\nNote - ${raisedHand.note}`;
+
     // get_or_create the chatRoom
     const getChatRoom = await Get_or_Create_ChatRoom(raised_by, owner, {
-      message: raisedHand.note,
+      message,
     });
 
     // Delete the raised hand request as soon as it is accepted
@@ -112,17 +197,25 @@ router.post("/accept-raised-hand", UserAuth, async (req, res) => {
 });
 
 // Reject the raised hand
-router.delete("/reject-raised-hand", async (req, res) => {
+router.delete("/reject-raised-hand", UserAuth, async (req, res) => {
   try {
     // Check if Raised hand request exists
     const raisedHand = await raisedHands.findById(req.body._id);
     if (!raisedHand)
       return res.status(400).send({ message: messages.raised_hand_not_found });
 
+    let user_id = req.body.user_details._id.toString();
+    let raised_by = raisedHand.raised_by.toString();
+    let product_owner_id = raisedHand.product_owner_id.toString();
+
+    // Check if user_id is equal to raised_by or product_owner_id
+    if (user_id !== raised_by && user_id !== product_owner_id)
+      return res.status(400).send({ message: messages.unauthorized });
+
     // Delete the raised hand request
     await raisedHand.delete();
 
-    return res.send({ message: "Request Rejected" });
+    return res.send({ message: "Request Deleted" });
   } catch (error) {
     return res.status(500).send({ message: messages.serverError });
   }
