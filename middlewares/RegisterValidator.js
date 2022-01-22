@@ -48,6 +48,7 @@ const RegisterSchema = Joi.object({
       "any.only": "You must accept the Terms and Conditions",
     }),
   push_notification_token: Joi.string().allow(""),
+  room_number: Joi.string().required("Room Number is required"),
 }).options({ allowUnknown: true });
 
 const ValidateRegister = (req, res, next) => {

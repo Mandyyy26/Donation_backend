@@ -70,7 +70,6 @@ const UserAuth = async (req, res, next) => {
       } else return res.status(403).send({ message: messages.unauthorized });
     } else return res.status(403).send({ message: messages.tokenMissing });
   } catch (error) {
-    console.log(error);
     return res.status(501).send({ message: messages.serverError });
   }
 };
