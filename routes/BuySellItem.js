@@ -69,11 +69,11 @@ router.get("/get-buy-sell-feed", async (req, res) => {
           from: "users",
           localField: "posted_by",
           foreignField: "_id",
-          as: "posted_by_user_name",
+          as: "posted_by_details",
         },
       },
       {
-        $unwind: "$posted_by_user_name",
+        $unwind: "$posted_by_details",
       },
       // Keep only name in posted_by field and other required fields
       {
@@ -85,7 +85,13 @@ router.get("/get-buy-sell-feed", async (req, res) => {
           files: 1,
           posted_on: 1,
           posted_by: 1,
-          posted_by_user_name: "$posted_by_user_name.name",
+          owner_details: {
+            _id: "$posted_by_details._id",
+            name: "$posted_by_details.name",
+            profile_picture: "$posted_by_details.profile_picture",
+            hostel: "$posted_by_details.hostel",
+            room_number: "$posted_by_details.room_number",
+          },
         },
       },
     ]);
@@ -117,8 +123,13 @@ router.get("/get-buysell-product-details", async (req, res) => {
     let product_details = product.toObject();
 
     // get the owner of the product
-    const owner = await users.findById(product.posted_by);
-    if (owner) product_details.posted_by = owner.name;
+    const owner = await users.findById(product.posted_by, {
+      name: 1,
+      profile_picture: 1,
+      hostel: 1,
+      room_number: 1,
+    });
+    if (owner) product_details.owner_details = owner.toObject();
 
     // Send the product details
     return res.send({

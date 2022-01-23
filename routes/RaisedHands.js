@@ -99,34 +99,33 @@ router.get("/get-raised-responses", UserAuth, async (req, res) => {
           as: "product_details",
         },
       },
-      // Join with the user model and get the user details of the product owner field name product_owner_id
+      // Get raisedBy details
       {
         $lookup: {
           from: "users",
-          localField: "product_owner_id",
+          localField: "raised_by",
           foreignField: "_id",
-          as: "product_owner_details",
+          as: "raised_by_details",
         },
+      },
+      // Unwind the raised_by_details array
+      {
+        $unwind: "$raised_by_details",
       },
       // Unwind the product_details array
       {
         $unwind: "$product_details",
-      },
-      // Unwind the product_owner_details array
-      {
-        $unwind: "$product_owner_details",
       },
       // Keep only the required fields
       {
         $project: {
           _id: 1,
           product_id: 1,
-          product_owner_id: 1,
           raised_by: 1,
           raised_datetime: 1,
           note: 1,
           product_details: 1,
-          product_owner_details: {
+          raised_by_details: {
             name: 1,
             profile_picture: 1,
           },

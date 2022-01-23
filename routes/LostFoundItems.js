@@ -70,11 +70,11 @@ router.get("/get-lost-found-feed", async (req, res) => {
           from: "users",
           localField: "posted_by",
           foreignField: "_id",
-          as: "posted_by_user_name",
+          as: "posted_by_details",
         },
       },
       {
-        $unwind: "$posted_by",
+        $unwind: "$posted_by_details",
       },
       // Keep only name in posted_by field and other required fields
       {
@@ -85,7 +85,13 @@ router.get("/get-lost-found-feed", async (req, res) => {
           files: 1,
           posted_on: 1,
           posted_by: 1,
-          posted_by_user_name: "$posted_by_user_name.name",
+          owner_details: {
+            _id: "$posted_by_details._id",
+            name: "$posted_by_details.name",
+            profile_picture: "$posted_by_details.profile_picture",
+            hostel: "$posted_by_details.hostel",
+            room_number: "$posted_by_details.room_number",
+          },
         },
       },
     ]);
@@ -118,16 +124,22 @@ router.get("/get-lost-found-product-details", UserAuth, async (req, res) => {
     if (!product)
       return res.status(404).send({ message: messages.product_not_found });
 
+    // Convert the product instance into an object
     let product_details = product.toObject();
 
     // get the owner of the product
-    const owner = await users.findById(product.posted_by, { name: 1 });
-    if (owner) product_details.posted_by = owner.name;
+    const owner = await users.findById(product.posted_by, {
+      name: 1,
+      profile_picture: 1,
+      hostel: 1,
+      room_number: 1,
+    });
+    // Supply the owner details to the product
+    if (owner) product_details.owner_details = owner.toObject();
 
+    // Check if the user has raised the hand
     product_details.you_raised_hand = false;
-
-    if (user_id) {
-      // Check if the user has raised the hand
+    if (user_id && user_id !== owner._id) {
       const raised_hand = await raisedHands.findOne({
         product_id: product_id,
         raised_by: user_id,
