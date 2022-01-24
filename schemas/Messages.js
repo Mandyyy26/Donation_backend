@@ -26,7 +26,7 @@ const messagesSchema = new mongoose.Schema({
   },
   message_datetime: {
     type: Date,
-    default: Date.now,
+    default: () => Date.now(),
   },
   read: {
     type: Boolean,

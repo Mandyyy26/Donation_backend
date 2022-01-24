@@ -13,7 +13,7 @@ const notificationsSchema = new mongoose.Schema({
   },
   created_datetime: {
     type: Date,
-    default: Date.now,
+    default: () => Date.now(),
   },
   seen: {
     type: Boolean,

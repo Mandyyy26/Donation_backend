@@ -16,7 +16,7 @@ const requirementSchema = new mongoose.Schema({
   },
   posted_on: {
     type: Date,
-    default: Date.now,
+    default: () => Date.now(),
     expires: MAX_LIFE,
   },
   posted_by: {

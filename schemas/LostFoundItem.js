@@ -13,7 +13,7 @@ const lostFoundSchema = new mongoose.Schema({
   },
   posted_on: {
     type: Date,
-    default: Date.now,
+    default: () => Date.now(),
   },
   files: {
     type: Array,
