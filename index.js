@@ -11,7 +11,7 @@ const messages = require("./config/messages");
 // Routes imports
 const BuySellItem = require("./routes/BuySellItem");
 const Chats = require("./routes/Chats");
-const EmailVerify = require("./routes/EmailVerify");
+const OTP = require("./routes/OTP");
 const LostFoundItems = require("./routes/LostFoundItems");
 const RaisedHands = require("./routes/RaisedHands");
 const Requirements = require("./routes/Requirements");
@@ -35,7 +35,7 @@ app.use(express.static(path.join(__dirname, "/public")));
 // Add routes
 app.use(process.env.apiVersion + process.env.buysell, BuySellItem);
 app.use(process.env.apiVersion + process.env.chats, Chats);
-app.use(process.env.apiVersion + process.env.emailVerify, EmailVerify);
+app.use(process.env.apiVersion + process.env.otp, OTP);
 app.use(process.env.apiVersion + process.env.lostfound, LostFoundItems);
 app.use(process.env.apiVersion + process.env.raisedhands, RaisedHands);
 app.use(process.env.apiVersion + process.env.requirements, Requirements);
