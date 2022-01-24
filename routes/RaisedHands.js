@@ -2,7 +2,7 @@
 const express = require("express");
 
 // Local imports
-const { AdminAuth, UserAuth } = require("../middlewares/AuthValidator");
+const { UserAuth } = require("../middlewares/AuthValidator");
 const { Get_or_Create_ChatRoom } = require("../controllers/Chats");
 const { lostFoundItems } = require("../models/LostFoundItem");
 const messages = require("../config/messages");
@@ -10,20 +10,6 @@ const { raisedHands } = require("../models/RaisedHands");
 
 // Initialize router
 const router = express.Router();
-
-// Get List of all Raised Hands in Database for Admin only
-router.get("/", AdminAuth, async (req, res) => {
-  try {
-    const raisedHandsList = await raisedHands.find();
-
-    return res.status(200).send({
-      RaisedHands: raisedHandsList,
-      message: "List of all the raised Hands in database",
-    });
-  } catch (error) {
-    return res.status(500).send({ message: messages.serverError });
-  }
-});
 
 // raise a hand endpoint
 router.post("/raise-hand-on-an-item", UserAuth, async (req, res) => {

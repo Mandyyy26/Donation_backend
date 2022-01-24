@@ -2,27 +2,13 @@
 const express = require("express");
 
 // Local imports
-const { AdminAuth, UserAuth } = require("../middlewares/AuthValidator");
+const { UserAuth } = require("../middlewares/AuthValidator");
 const messages = require("../config/messages");
 const { requirements } = require("../models/Requirements");
 const { ValidateRequirement } = require("../middlewares/RequirementsValidator");
 
 // Initialize router
 const router = express.Router();
-
-// Get List of all requirements in Database for Admin only
-router.get("/", AdminAuth, async (req, res) => {
-  try {
-    const requirementsList = await requirements.find();
-
-    return res.status(200).send({
-      Requirements: requirementsList,
-      message: "This list shows list of requirments in Database",
-    });
-  } catch (error) {
-    return res.status(500).send({ message: messages.serverError });
-  }
-});
 
 // Get requirement feed in batches of 10, according to the time they were posted
 router.get("/get-requirement-feed", async (req, res) => {

@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const multer = require("multer");
 
 // Local imports
-const { AdminAuth, UserAuth } = require("../middlewares/AuthValidator");
+const { UserAuth } = require("../middlewares/AuthValidator");
 const { buySellItems } = require("../models/BuySellItem");
 const { DeleteMultipleFiles, DeleteAFolder } = require("../utils/Cloudinary");
 const messages = require("../config/messages");
@@ -17,20 +17,6 @@ const router = express.Router();
 
 // Multer configuration
 const upload = multer({ storage: multer.memoryStorage() });
-
-// Get List of all buy-sell items in Database for Admin only
-router.get("/", AdminAuth, async (req, res) => {
-  try {
-    const buySellItemsList = await buySellItems.find();
-
-    return res.status(200).send({
-      products: buySellItemsList,
-      message: "This list shows all the Buy-Sell Items in Database",
-    });
-  } catch (error) {
-    return res.status(500).send({ message: messages.serverError });
-  }
-});
 
 // Get buy-sell feed in batches of 10, according to the time they were posted
 router.get("/get-buy-sell-feed", async (req, res) => {

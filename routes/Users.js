@@ -5,41 +5,28 @@ const jwt = require("jsonwebtoken");
 const multer = require("multer");
 
 // Local imports
-const { AdminAuth, UserAuth } = require("../middlewares/AuthValidator");
+const { CreateOTP } = require("../controllers/OTP");
 const { get_login_payload_data } = require("../controllers/Users");
 const messages = require("../config/messages");
+const { resetRequests } = require("../models/ResetPassword");
+const { SendOTPEmail } = require("../utils/Mailer");
 const {
   UploadToCloudinary,
   UploadToCloudinaryRemote,
 } = require("../utils/Cloudinary");
 const { users } = require("../models/Users");
+const { UserAuth } = require("../middlewares/AuthValidator");
 const { ValidateRegister } = require("../middlewares/RegisterValidator");
 const { ValidateLogin } = require("../middlewares/LoginValidator");
 const { VerifyTokenID } = require("../utils/GoogleSignIn");
 const { ValidateEditProfile } = require("../middlewares/EditProfileValidator");
+const { VERIFICATION_TYPES } = require("../schemas/OTP");
 
 // Initialize router
 const router = express.Router();
 
 // Multer configuration
 const upload = multer({ storage: multer.memoryStorage() });
-
-// Get List of all users in Database for Admin only
-router.get("/users", AdminAuth, async (req, res) => {
-  try {
-    const usersList = await users.find(
-      {},
-      { name: 1, email: 1, profile_picture: 1 }
-    );
-
-    return res.status(200).send({
-      Users: usersList,
-      messsage: "This list shows all the users in the database.",
-    });
-  } catch (error) {
-    return res.status(500).send({ message: messages.serverError });
-  }
-});
 
 // Endpoint for Login
 router.post("/login", ValidateLogin, async (req, res) => {
@@ -143,14 +130,24 @@ router.post(
   async (req, res) => {
     try {
       // Check if user with same email already exists
-      const user = await users.findOne({ email: req.body.email });
+      const user = await users
+        .findOne()
+        .or([
+          { email: req.body.email },
+          { phone: req.body.phone },
+          { roll_number: req.body.roll_number },
+        ]);
+
       if (user)
-        return res
-          .status(400)
-          .send({ message: messages.emailAlreadyInUse, isLoggedIn: false });
+        return res.status(400).send({
+          message: "Email, Phone and Roll Number should be unique",
+          isLoggedIn: false,
+        });
 
       // Else create new user instance
       const newUser = new users(req.body);
+      newUser.email_verified = true;
+
       // Destination for profile_picture
       const destination = `Kolegia/users/${newUser._id}/profile_picture`;
 
@@ -333,6 +330,100 @@ router.put(
   }
 );
 
+// Send Email Register First OTP endpoint
+router.post("/send-email-register-otp", async (req, res) => {
+  try {
+    // Check if Body consists of email
+    if (!req.body.email)
+      return res.status(400).send({ message: messages.emailRequired });
+
+    // Check if email is already in use
+    const user = await users.findOne({ email: req.body.email });
+    if (user)
+      return res.status(401).send({
+        response: messages.associatedAccount,
+      });
+
+    // Create new OTP instance
+    const newOtp = await CreateOTP(VERIFICATION_TYPES.EMAIL_VERIFICATION);
+    if (!newOtp.ok)
+      return res.status(500).send({ message: messages.serverError });
+
+    // Send Email
+    const sendMail = await SendOTPEmail({
+      to: req.body.email,
+      subject: "Email Verification",
+      locals: {
+        OTP: newOtp.otp,
+        operation: "to verify your email address.",
+      },
+    });
+
+    // If email has been sent successfully
+    if (sendMail.ok) {
+      return res.send({
+        message: "OTP has been sent to your email",
+        otp_id: newOtp.otp_id,
+      });
+    }
+
+    return res.status(500).send({
+      message: "Error in sending OTP. Server Error",
+    });
+  } catch (error) {
+    return res.status(500).send({
+      response: messages.serverError,
+    });
+  }
+});
+
+// Send Forgot Password OTP Endpoint
+router.post("/send-forgot-password-otp", async (req, res) => {
+  try {
+    // Check if Body consists of email
+    if (!req.body.email)
+      return res.status(400).send({ message: messages.emailRequired });
+
+    // Check if email is already in use
+    const user = await users.findOne({ email: req.body.email });
+    if (!user)
+      return res.status(401).send({
+        response: "Account with this email does not exist",
+      });
+
+    // Create new OTP instance
+    const newOtp = await CreateOTP(VERIFICATION_TYPES.FORGOT_PASSWORD);
+    if (!newOtp.ok)
+      return res.status(500).send({ message: messages.serverError });
+
+    // Send Email
+    const sendMail = await SendOTPEmail({
+      to: req.body.email,
+      subject: "Password Reset Verification",
+      locals: {
+        OTP: newOtp.otp,
+        operation: "to reset your password.",
+      },
+    });
+
+    // If email has been sent successfully
+    if (sendMail.ok) {
+      return res.send({
+        message: "OTP has been sent to your email",
+        otp_id: newOtp.otp_id,
+      });
+    }
+
+    return res.status(500).send({
+      message: "Error in sending OTP. Server Error",
+    });
+  } catch (error) {
+    return res.status(500).send({
+      response: messages.serverError,
+    });
+  }
+});
+
 // Turn off/on push notification for a User depending on the status
 router.put("/toggle-push-notifications", UserAuth, async (req, res) => {
   try {
@@ -350,6 +441,56 @@ router.put("/toggle-push-notifications", UserAuth, async (req, res) => {
     return res.send({
       current_status: user.send_push_notification,
       message: "Status has been updated successfully.",
+    });
+  } catch (error) {
+    return res.status(500).send({ message: messages.serverError });
+  }
+});
+
+// Reset Password endpoint
+router.post("/reset-password", async (req, res) => {
+  try {
+    if (!req.body.reset_request_id)
+      return res.status(400).send({ message: "Reset Request ID is required" });
+
+    if (!req.body.password)
+      return res.status(400).send({ message: "Password is required" });
+
+    if (!req.body.email)
+      return res.status(400).send({ message: "Email is required" });
+
+    // Check if request is valid
+    const check_request = await resetRequests.findById(
+      req.body.reset_request_id
+    );
+    if (!check_request)
+      return res.status(400).send({ message: "Invalid Request" });
+
+    // Find user
+    const user = await users.findOne({ email: req.body.email });
+    if (!user)
+      return res
+        .status(400)
+        .send({ message: "User does not exist with this Email." });
+
+    // Hash the password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(req.body.password, salt);
+
+    // Delete the request
+    await check_request.delete();
+
+    // Save the user
+    await user.save();
+
+    // Create userData
+    const userData = get_login_payload_data(user);
+
+    // Response
+    return res.status(200).send({
+      User: userData,
+      message: "Logged in successfully..",
+      isLoggedIn: true,
     });
   } catch (error) {
     return res.status(500).send({ message: messages.serverError });

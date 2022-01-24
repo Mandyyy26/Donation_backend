@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const multer = require("multer");
 
 // Local imports
-const { AdminAuth, UserAuth } = require("../middlewares/AuthValidator");
+const { UserAuth } = require("../middlewares/AuthValidator");
 const { UploadFilesForPayload } = require("../controllers/BuySell");
 const { DeleteAFolder, DeleteMultipleFiles } = require("../utils/Cloudinary");
 const messages = require("../config/messages");
@@ -18,20 +18,6 @@ const router = express.Router();
 
 // Multer configuration
 const upload = multer({ storage: multer.memoryStorage() });
-
-// Get List of all lost-found items in Database for Admin only
-router.get("/", AdminAuth, async (req, res) => {
-  try {
-    const lostFoundItemsList = await lostFoundItems.find();
-
-    return res.status(200).send({
-      products: lostFoundItemsList,
-      message: "This list shows all the Lost-Found Items in Database",
-    });
-  } catch (error) {
-    return res.status(500).send({ message: messages.serverError });
-  }
-});
 
 // Get lost-found feed in batches of 10, according to the time they were posted
 router.get("/get-lost-found-feed", async (req, res) => {
@@ -231,13 +217,9 @@ router.put(
         if (key !== "files") product[key] = req.body[key];
       });
 
-      // Check if after uploading and deleting there are any file left or not
-      let currentFiles = product.files.length;
+      // Check if there are files to be uploaded or deleted
       let toUpload = req.body.files?.length ?? 0;
       let toDelete = req.body.to_be_deleted?.length ?? 0;
-
-      if (currentFiles + toUpload - toDelete < 1)
-        return res.status(400).send({ message: messages.filerequired });
 
       // If files array is not empty, upload them to Cloudinary and push it to the product.files array
       if (toUpload > 0) {
