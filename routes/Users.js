@@ -1,12 +1,15 @@
 // package and other modules
 const bcrypt = require("bcrypt");
 const express = require("express");
-const jwt = require("jsonwebtoken");
 const multer = require("multer");
 
 // Local imports
 const { CreateOTP } = require("../controllers/OTP");
-const { get_login_payload_data } = require("../controllers/Users");
+const {
+  get_login_payload_data,
+  get_auth_token,
+  get_encoded_data,
+} = require("../controllers/Users");
 const messages = require("../config/messages");
 const { resetRequests } = require("../models/ResetPassword");
 const { SendOTPEmail } = require("../utils/Mailer");
@@ -59,12 +62,12 @@ router.post("/login", ValidateLogin, async (req, res) => {
     }
 
     // Create userData
-    const userData = get_login_payload_data(user);
+    const newUserData = get_encoded_data(user);
 
-    // Response
+    // Return response
     return res.status(200).send({
-      User: userData,
-      message: "Logged in successfully..",
+      user_token: newUserData,
+      message: "Login Successfull",
       isLoggedIn: true,
     });
   } catch (error) {
@@ -107,7 +110,7 @@ router.post("/google-login", async (req, res) => {
       await user.save();
     }
 
-    const userData = get_login_payload_data(user);
+    const userData = get_encoded_data(user);
 
     // Response
     return res.status(200).send({
@@ -183,12 +186,7 @@ router.post(
       newUser.password = await bcrypt.hash(newUser.password, salt);
 
       // Create auth_token for a user
-      const auth_token = jwt.sign(
-        {
-          _id: newUser._id,
-        },
-        process.env.JWT_Key
-      );
+      const auth_token = get_auth_token(newUser._id);
 
       // Assign the auth_token for the user
       newUser.auth_token = auth_token;
@@ -197,11 +195,11 @@ router.post(
       await newUser.save();
 
       // Create userData
-      const newUserData = get_login_payload_data(newUser);
+      const newUserData = get_encoded_data(newUser);
 
       // Return response
       return res.status(200).send({
-        User: newUserData,
+        user_token: newUserData,
         message: "Your account has been created successfully..",
         isLoggedIn: true,
       });
@@ -484,12 +482,12 @@ router.post("/reset-password", async (req, res) => {
     await user.save();
 
     // Create userData
-    const userData = get_login_payload_data(user);
+    const newUserData = get_encoded_data(user);
 
-    // Response
+    // Return response
     return res.status(200).send({
-      User: userData,
-      message: "Logged in successfully..",
+      user_token: newUserData,
+      message: "Login Successfull",
       isLoggedIn: true,
     });
   } catch (error) {
