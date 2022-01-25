@@ -1,7 +1,5 @@
-// Import the required modules
-const jwt = require("jsonwebtoken");
-
-// Imported static modules
+// Imported local modules
+const { JWT_Verify } = require("../controllers/JWT");
 const messages = require("../config/messages");
 const { users } = require("../models/Users");
 
@@ -16,18 +14,18 @@ const UserAuth = async (req, res, next) => {
       if (result.length !== 2)
         return res.status(403).send({ message: messages.tokenMissing });
 
-      const Token = jwt.verify(result[1], process.env.JWT_Key);
+      const Token = JWT_Verify(result[1]);
 
       if (Token) {
-        const checkUser = await users.findById(Token._id);
+        const user = await users.findById(Token._id);
 
-        if (!checkUser)
+        if (!user)
           return res.status(403).send({ message: messages.unauthorized });
 
         req.body.user_details = {
-          _id: checkUser._id,
-          name: checkUser.name,
-          email: checkUser.email,
+          _id: user._id,
+          name: user.name,
+          email: user.email,
         };
 
         next();
