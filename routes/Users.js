@@ -153,18 +153,19 @@ router.post(
 
       // Destination for profile_picture
       const destination = `Kolegia/users/${newUser._id}/profile_picture`;
+      const isRemoteImage = req.body.remote_profile_picture ?? false;
+      const isLocalImage = req.body.profile_picture ?? false;
 
-      // Upload profile_picture if present it req.body
-      if (req.body.profile_picture) {
+      if (isRemoteImage || isLocalImage) {
         let uploadResponse;
-
-        if (typeof req.body.profile_picture === "string") {
+        // Upload profile_picture if present it req.body
+        if (req.body.remote_profile_picture) {
           // Upload to Cloudinary if profile_picture is a url
           uploadResponse = await UploadToCloudinaryRemote(
-            req.body.profile_picture,
+            req.body.remote_profile_picture,
             destination
           );
-        } else {
+        } else if (req.body.profile_picture) {
           // Upload profile_picture to cloudinary if file is buffer
           uploadResponse = await UploadToCloudinary(
             req.body.profile_picture,

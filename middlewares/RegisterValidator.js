@@ -41,14 +41,9 @@ const RegisterSchema = Joi.object({
       "string.min": `Password must be atleast ${MinPasswordLen} characters long`,
       "string.max": `Password must be atmost ${MaxPasswordLen} characters long`,
     }),
-  terms_accepted: Joi.boolean()
-    .required("Terms Accepted is required")
-    .valid(true)
-    .messages({
-      "any.only": "You must accept the Terms and Conditions",
-    }),
   push_notification_token: Joi.string().allow(""),
   room_number: Joi.string().required("Room Number is required"),
+  remote_profile_picture: Joi.string().allow("").optional(),
 }).options({ allowUnknown: true });
 
 const ValidateRegister = (req, res, next) => {
