@@ -19,7 +19,7 @@ const messages = {
     "You have already raised a hand on this product. Wait for the owner to respond",
 
   // Auth
-  accountMissing: "Account with this Email does exist!",
+  accountMissing: "Account with this Email does not exist!",
   emailRequired: "Email is Required",
   currentPasswordError: "Invalid Current Password",
   invalidCredentials: "Invalid Credentials",
