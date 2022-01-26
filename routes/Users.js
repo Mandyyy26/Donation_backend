@@ -114,7 +114,7 @@ router.post("/google-login", async (req, res) => {
 
     // Response
     return res.status(200).send({
-      User: userData,
+      user_token: userData,
       message: "Logged in successfully..",
       isLoggedIn: true,
     });
