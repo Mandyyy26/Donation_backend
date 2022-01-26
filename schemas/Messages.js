@@ -33,13 +33,15 @@ const messagesSchema = new mongoose.Schema({
     default: false,
   },
   message_file: {
-    name: String,
+    _id: String,
+    public_id: String,
     mimeType: {
       type: String,
       enum: ["image/jpeg", "image/png", "image/jpg", "video/mp4"],
     },
-    url: String,
-    preview_url: String,
+    uri: String,
+    height: Number,
+    width: Number,
   },
 });
 
