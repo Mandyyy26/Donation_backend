@@ -10,6 +10,10 @@ const ValidateMessageReqBody = (req, res, next) => {
   // If req.file exits then it is file otherwise text
   let message_type = req.file?.buffer ? "file" : "text";
 
+  if (message_type === "text")
+    if (trimmed_message.length === 0)
+      return res.status(400).send({ message: "Message is required" });
+
   let newBody = {
     ...req.body,
     message: trimmed_message,
