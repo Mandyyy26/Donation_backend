@@ -20,7 +20,7 @@ const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 // Get lost-found feed in batches of 10, according to the time they were posted
-router.get("/get-lost-found-feed", async (req, res) => {
+router.get("/get-lost-found-feed", UserAuth, async (req, res) => {
   try {
     // Get the products in batches of 10 after this _id
     let after = req.query?.after
@@ -38,6 +38,7 @@ router.get("/get-lost-found-feed", async (req, res) => {
         // Match the products with the filter
         $match: {
           ...after_this_id_filter,
+          found_by_someone: false,
         },
       },
       // sort them in descending order of _id
@@ -62,15 +63,8 @@ router.get("/get-lost-found-feed", async (req, res) => {
       {
         $unwind: "$posted_by_details",
       },
-      // Keep only name in posted_by field and other required fields
       {
-        $project: {
-          _id: 1,
-          name: 1,
-          description: 1,
-          files: 1,
-          posted_on: 1,
-          posted_by: 1,
+        $addFields: {
           owner_details: {
             _id: "$posted_by_details._id",
             name: "$posted_by_details.name",
@@ -78,6 +72,13 @@ router.get("/get-lost-found-feed", async (req, res) => {
             hostel: "$posted_by_details.hostel",
             room_number: "$posted_by_details.room_number",
           },
+        },
+      },
+      // remove unnecessary fields
+      {
+        $project: {
+          __v: 0,
+          posted_by_details: 0,
         },
       },
     ]);
@@ -175,13 +176,9 @@ router.post(
       // Saving the new product to the database
       await newProduct.save();
 
-      let product_details = newProduct.toObject();
-
-      product_details.posted_by = req.body.user_details.name;
-
       // Return the new product
       return res.send({
-        Product: product_details,
+        Product: newProduct,
         message: "New lost-found Product Created",
       });
     } catch (error) {
