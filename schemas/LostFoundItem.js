@@ -24,6 +24,26 @@ const lostFoundSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  brand: {
+    type: String,
+    default: "",
+  },
+  category: {
+    type: String,
+    default: "",
+  },
+  color: {
+    type: String,
+    default: "",
+  },
+  lost_datetime: {
+    type: Date,
+    default: null,
+  },
+  lost_location: {
+    type: String,
+    default: "",
+  },
 });
 
 // Exporting the lostFoundSchema
