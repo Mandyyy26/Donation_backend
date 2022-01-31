@@ -53,8 +53,6 @@ io.on("connection", (socket) => {
 
     socket.join(user.room);
 
-    console.log(getRoomUsers(user.room));
-
     io.to(user.room).emit("roomUsers", {
       room: user.room,
       users: getRoomUsers(user.room),
