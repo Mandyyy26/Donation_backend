@@ -105,6 +105,7 @@ router.post("/google-login", async (req, res) => {
         partial_login: true,
       });
 
+    // If request body has push_notification_token, update it in the database
     if (req.body.push_notification_token) {
       user.push_notification_token = req.body.push_notification_token;
       await user.save();

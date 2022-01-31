@@ -68,7 +68,6 @@ async function UploadChatFile(destination, message_file) {
       return { message: "File upload failed", ok: false };
     }
   } catch (error) {
-    console.log(error);
     return { message: "File upload failed", ok: false };
   }
 }
