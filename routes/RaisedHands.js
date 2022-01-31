@@ -72,9 +72,11 @@ router.get("/get-raised-responses", UserAuth, async (req, res) => {
     // Get all raised hands for this user by the field of product_owner_id in raisedHands model
     const raisedHandsList = await raisedHands.aggregate([
       // Match product_owner_id with the user_id
+      // and raised_by is not equal to the user_id
       {
         $match: {
           product_owner_id: user_id,
+          raised_by: { $ne: user_id },
         },
       },
       // Join with the product model
@@ -123,6 +125,54 @@ router.get("/get-raised-responses", UserAuth, async (req, res) => {
     return res.send({
       raised_hands: raisedHandsList,
       message: "Successfully fetched raised hands",
+    });
+  } catch (error) {
+    return res.status(500).send("Error");
+  }
+});
+
+// Get all products on which I raised hand
+router.get("/get-raised_by-me-responses", UserAuth, async (req, res) => {
+  try {
+    let user_id = req.body.user_details._id;
+
+    // Get all raised hands for this user by the field of product_owner_id in raisedHands model
+    const raisedHandsList = await raisedHands.aggregate([
+      // Match product_owner_id with the user_id
+      // and raised_by is not equal to the user_id
+      {
+        $match: {
+          raised_by: user_id,
+        },
+      },
+      // Join with the product model
+      {
+        $lookup: {
+          from: "lostfounditems",
+          localField: "product_id",
+          foreignField: "_id",
+          as: "product_details",
+        },
+      },
+      // unwind the product_details array
+      {
+        $unwind: "$product_details",
+      },
+      {
+        $project: {
+          _id: 1,
+          product_id: 1,
+          raised_by: 1,
+          raised_datetime: 1,
+          note: 1,
+          product_details: 1,
+        },
+      },
+    ]);
+
+    return res.send({
+      raised_hands: raisedHandsList,
+      message: "Successfully fetched raised hands by you.",
     });
   } catch (error) {
     return res.status(500).send("Error");
