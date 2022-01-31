@@ -7,6 +7,7 @@ const { Get_or_Create_ChatRoom } = require("../controllers/Chats");
 const { lostFoundItems } = require("../models/LostFoundItem");
 const messages = require("../config/messages");
 const { raisedHands } = require("../models/RaisedHands");
+const { users } = require("../models/Users");
 
 // Initialize router
 const router = express.Router();
@@ -168,12 +169,23 @@ router.post("/accept-raised-hand", UserAuth, async (req, res) => {
       message,
     });
 
+    // get the details of the person who raised hands
+    const raised_by_details = await users.findById(raised_by);
+    if (!raised_by_details)
+      return res.status(400).send({ message: "User not Found" });
+
     // Delete the raised hand request as soon as it is accepted
     await raisedHand.delete();
 
     // return the chat room
     return res.send({
       room_id: getChatRoom.room._id,
+      raised_by_details: {
+        _id: raised_by,
+        name: raised_by_details.name,
+        profile_picture: raised_by_details.profile_picture,
+        phone: raised_by_details.phone,
+      },
       message: "Accepted the Raised hand request",
     });
   } catch (error) {

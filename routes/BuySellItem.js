@@ -77,6 +77,7 @@ router.get("/get-buy-sell-feed", async (req, res) => {
             profile_picture: "$posted_by_details.profile_picture",
             hostel: "$posted_by_details.hostel",
             room_number: "$posted_by_details.room_number",
+            phone: "$posted_by_details.phone",
           },
         },
       },
@@ -114,6 +115,7 @@ router.get("/get-buysell-product-details", async (req, res) => {
       profile_picture: 1,
       hostel: 1,
       room_number: 1,
+      phone: 1,
     });
     if (owner) product_details.owner_details = owner.toObject();
 
