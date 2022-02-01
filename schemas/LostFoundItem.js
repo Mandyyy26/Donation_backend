@@ -36,7 +36,11 @@ const lostFoundSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
-  lost_datetime: {
+  lost_date: {
+    type: Date,
+    default: null,
+  },
+  lost_time: {
     type: Date,
     default: null,
   },
