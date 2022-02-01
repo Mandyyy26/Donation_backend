@@ -9,6 +9,7 @@ const {
   get_login_payload_data,
   get_auth_token,
   get_encoded_data,
+  get_dashboard_stats,
 } = require("../controllers/Users");
 const messages = require("../config/messages");
 const { resetRequests } = require("../models/ResetPassword");
@@ -18,7 +19,7 @@ const {
   UploadToCloudinaryRemote,
 } = require("../utils/Cloudinary");
 const { users } = require("../models/Users");
-const { UserAuth } = require("../middlewares/AuthValidator");
+const { UserAuth, OptionalAuth } = require("../middlewares/AuthValidator");
 const { ValidateRegister } = require("../middlewares/RegisterValidator");
 const { ValidateLogin } = require("../middlewares/LoginValidator");
 const { VerifyTokenID } = require("../utils/GoogleSignIn");
@@ -492,6 +493,17 @@ router.post("/reset-password", async (req, res) => {
       message: "Login Successfull",
       isLoggedIn: true,
     });
+  } catch (error) {
+    return res.status(500).send({ message: messages.serverError });
+  }
+});
+
+// Get dashboard Stats
+router.get("/get-dashboard-statistics", OptionalAuth, async (req, res) => {
+  try {
+    const statsData = await get_dashboard_stats(req);
+
+    return res.send({ stats: statsData, message: "Dashboard Statistics" });
   } catch (error) {
     return res.status(500).send({ message: messages.serverError });
   }

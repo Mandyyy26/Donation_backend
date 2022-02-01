@@ -36,5 +36,36 @@ const UserAuth = async (req, res, next) => {
   }
 };
 
+const OptionalAuth = async (req, res, next) => {
+  try {
+    const authToken = req.headers.authorization;
+
+    if (authToken) {
+      let result = authToken.split(" ");
+
+      if (result.length !== 2) return next();
+
+      const Token = JWT_Verify(result[1]);
+
+      if (Token) {
+        const user = await users.findById(Token._id);
+
+        if (!user) return next();
+
+        req.body.user_details = {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+        };
+
+        next();
+      } else return next();
+    } else return next();
+  } catch (error) {
+    return next();
+  }
+};
+
 // Exports
 exports.UserAuth = UserAuth;
+exports.OptionalAuth = OptionalAuth;
