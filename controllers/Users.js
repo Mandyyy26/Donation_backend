@@ -55,31 +55,26 @@ async function get_dashboard_stats(req) {
     // get total users
     const users_count = await users.countDocuments({});
 
-    let raised_hands_count = null;
-    let unread_messages_count = null;
+    // get responses count
+    const raised_hands_count = await raisedHands.countDocuments({
+      product_owner_id: user_id,
+      raised_by: { $ne: user_id },
+    });
 
-    if (user_id) {
-      raised_hands_count = await raisedHands.countDocuments({
-        product_owner_id: user_id,
-        raised_by: { $ne: user_id },
-      });
-
-      unread_messages_count = await chats.countDocuments({
-        participants: { $all: [user_id] },
-        "last_message.read": false,
-        "last_message.reciever_id": user_id,
-      });
-    }
+    // get unread messages count
+    const unread_messages_count = await chats.countDocuments({
+      participants: { $all: [user_id] },
+      "last_message.read": false,
+      "last_message.reciever_id": user_id,
+    });
 
     // Create Payload
     let payload = {
       lost_items_count,
       found_items_count,
       users_count,
-      ...(raised_hands_count ? { raised_hands_count: raised_hands_count } : {}),
-      ...(unread_messages_count
-        ? { unread_messages_count: unread_messages_count }
-        : {}),
+      raised_hands_count,
+      unread_messages_count,
     };
 
     return payload;

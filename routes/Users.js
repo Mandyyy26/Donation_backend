@@ -19,7 +19,7 @@ const {
   UploadToCloudinaryRemote,
 } = require("../utils/Cloudinary");
 const { users } = require("../models/Users");
-const { UserAuth, OptionalAuth } = require("../middlewares/AuthValidator");
+const { UserAuth } = require("../middlewares/AuthValidator");
 const { ValidateRegister } = require("../middlewares/RegisterValidator");
 const { ValidateLogin } = require("../middlewares/LoginValidator");
 const { VerifyTokenID } = require("../utils/GoogleSignIn");
@@ -222,7 +222,7 @@ router.delete("/logout", UserAuth, async (req, res) => {
     if (!user)
       return res.status(404).send({ message: messages.accountMissing });
 
-    user.PushNotificationToken = "";
+    user.push_notification_token = "";
     await user.save();
 
     return res.send({ message: messages.loggedtOut });
@@ -481,6 +481,10 @@ router.post("/reset-password", async (req, res) => {
     // Delete the request
     await check_request.delete();
 
+    // If request body has push_notification_token, update it in the database
+    if (req.body.push_notification_token)
+      user.push_notification_token = req.body.push_notification_token;
+
     // Save the user
     await user.save();
 
@@ -499,7 +503,7 @@ router.post("/reset-password", async (req, res) => {
 });
 
 // Get dashboard Stats
-router.get("/get-dashboard-statistics", OptionalAuth, async (req, res) => {
+router.get("/get-dashboard-statistics", UserAuth, async (req, res) => {
   try {
     const statsData = await get_dashboard_stats(req);
 
