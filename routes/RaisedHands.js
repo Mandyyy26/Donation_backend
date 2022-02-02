@@ -8,7 +8,7 @@ const { lostFoundItems } = require("../models/LostFoundItem");
 const messages = require("../config/messages");
 const { raisedHands } = require("../models/RaisedHands");
 const { users } = require("../models/Users");
-const { send_push_to_user } = require("..//controllers/PushNotifications");
+const { send_push_to_user } = require("../controllers/PushNotifications");
 
 // Initialize router
 const router = express.Router();
