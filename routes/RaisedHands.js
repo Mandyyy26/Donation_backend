@@ -8,6 +8,7 @@ const { lostFoundItems } = require("../models/LostFoundItem");
 const messages = require("../config/messages");
 const { raisedHands } = require("../models/RaisedHands");
 const { users } = require("../models/Users");
+const { send_push_to_user } = require("..//controllers/PushNotifications");
 
 // Initialize router
 const router = express.Router();
@@ -53,6 +54,17 @@ router.post("/raise-hand-on-an-item", UserAuth, async (req, res) => {
       files: product.files,
     };
     payload.product_details = product_details;
+
+    let notification_payload = {
+      title: `Response Raised`,
+      body: `${req.body.user_details.name} has raised a hand on your product with title ${product.name}`,
+      imageUrl: process.env.default_product_image,
+    };
+
+    if (product.files.length > 0)
+      notification_payload.imageUrl = product.files[0].uri;
+
+    await send_push_to_user(product.posted_by, notification_payload);
 
     // return the raised hand
     return res.send({
