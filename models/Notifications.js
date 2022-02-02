@@ -5,7 +5,7 @@ const mongoose = require("mongoose");
 const { notificationsSchema } = require("../schemas/Notifications");
 
 // Product Model
-const notifications = mongoose.model("Notification", notificationsSchema);
+const notifications = mongoose.model("Notifications", notificationsSchema);
 
 // Exporting the Product model
 exports.notifications = notifications;

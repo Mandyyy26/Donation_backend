@@ -19,6 +19,11 @@ const notificationsSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  notify_to: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Users",
+    required: true,
+  },
 });
 
 // Exporting the notifications schema
