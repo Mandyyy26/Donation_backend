@@ -1,6 +1,6 @@
 // MongoDB configs
 
-const isDev = process.env.NODE_ENV === "development";
+const isDev = process.env.NODE_ENV !== "development";
 
 const db_url = isDev ? process.env.dev_atlas_url : process.env.prod_atlas_url;
 

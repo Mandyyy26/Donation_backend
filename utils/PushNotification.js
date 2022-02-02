@@ -1,4 +1,4 @@
-const FirebaseApp = require("./firebase");
+const FirebaseApp = require("./Firebase");
 
 const messages = require("../config/messages");
 
