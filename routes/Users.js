@@ -351,7 +351,7 @@ router.post("/send-email-register-otp", async (req, res) => {
     const user = await users.findOne({ email: req.body.email });
     if (user)
       return res.status(401).send({
-        response: messages.associatedAccount,
+        message: messages.associatedAccount,
       });
 
     // Create new OTP instance
@@ -382,7 +382,7 @@ router.post("/send-email-register-otp", async (req, res) => {
     });
   } catch (error) {
     return res.status(500).send({
-      response: messages.serverError,
+      message: messages.serverError,
     });
   }
 });
@@ -429,7 +429,7 @@ router.post("/send-forgot-password-otp", async (req, res) => {
     });
   } catch (error) {
     return res.status(500).send({
-      response: messages.serverError,
+      message: messages.serverError,
     });
   }
 });

@@ -95,7 +95,7 @@ router.get("/get-chats", UserAuth, async (req, res) => {
 
     return res.send({ Chats: allChats, message: "List of all chats" });
   } catch (error) {
-    return res.status(500).send("Error");
+    return res.status(500).send({ message: MESSAGES.serverError });
   }
 });
 
@@ -156,7 +156,8 @@ router.post(
 
       // Check if room exists
       let chatRoom = await chats.findById(room_id);
-      if (!chatRoom) return res.status(400).send(MESSAGES.chatMissing);
+      if (!chatRoom)
+        return res.status(400).send({ message: MESSAGES.chatMissing });
 
       let user_id = req.body.user_details._id;
       let participants = chatRoom.participants;

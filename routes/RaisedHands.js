@@ -139,7 +139,7 @@ router.get("/get-raised-responses", UserAuth, async (req, res) => {
       message: "Successfully fetched raised hands",
     });
   } catch (error) {
-    return res.status(500).send("Error");
+    return res.status(500).send({ message: messages.serverError });
   }
 });
 
@@ -187,7 +187,7 @@ router.get("/get-raised_by-me-responses", UserAuth, async (req, res) => {
       message: "Successfully fetched raised hands by you.",
     });
   } catch (error) {
-    return res.status(500).send("Error");
+    return res.status(500).send({ message: messages.serverError });
   }
 });
 

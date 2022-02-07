@@ -298,7 +298,10 @@ router.get("/get-own-lost-found-list", UserAuth, async (req, res) => {
       .sort({ _id: -1 });
 
     // Return the products list
-    return res.send({ Products: user_products });
+    return res.send({
+      Products: user_products,
+      message: "List of own lost found items",
+    });
   } catch (error) {
     return res.status(500).send({ message: messages.serverError });
   }
