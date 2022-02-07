@@ -22,7 +22,7 @@ const raisedHandsSchema = new mongoose.Schema({
     ref: "users",
     required: true,
   },
-  raised_datetime: { type: Date, default: () => Date.now(), required: true },
+  raised_datetime: { type: Date, default: Date.now, required: true },
 });
 
 // Exporting the Requirement schema

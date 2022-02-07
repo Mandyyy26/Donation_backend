@@ -15,10 +15,7 @@ const buySellItemSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  posted_on: {
-    type: Date,
-    default: () => Date.now(),
-  },
+  posted_on: { type: Date, default: Date.now },
   files: {
     type: Array,
     default: [],

@@ -7,7 +7,7 @@ const TIME_LIMTI = 600; // 10 minutes
 const resetPasswordSchema = new mongoose.Schema({
   created_at: {
     type: Date,
-    default: () => Date.now(),
+    default: Date.now,
     required: true,
     expires: TIME_LIMTI,
   },

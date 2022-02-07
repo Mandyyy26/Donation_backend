@@ -24,10 +24,7 @@ const messagesSchema = new mongoose.Schema({
     enum: ["text", "file"],
     default: "text",
   },
-  message_datetime: {
-    type: Date,
-    default: () => Date.now(),
-  },
+  message_datetime: { type: Date, default: Date.now },
   read: {
     type: Boolean,
     default: false,
