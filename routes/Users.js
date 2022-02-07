@@ -82,8 +82,17 @@ router.post("/login", ValidateLogin, async (req, res) => {
 // Login with Google
 router.post("/google-login", async (req, res) => {
   try {
-    const verifyResponse = await VerifyTokenID(req.body.ID_Token);
-    const email = verifyResponse.getPayload().email;
+    const verifyResponse = await VerifyTokenID(req.body.id_token);
+
+    if (!verifyResponse.ok) {
+      return res
+        .status(500)
+        .send({ message: "Invalid ID Token", isLoggedIn: false });
+    }
+
+    const user_details = verifyResponse.ticket.getPayload();
+
+    const email = user_details?.email;
 
     if (!email)
       return res
@@ -95,12 +104,12 @@ router.post("/google-login", async (req, res) => {
     });
 
     if (!user)
-      return res.status(404).send({
+      return res.status(200).send({
         message: messages.fillRestDetails,
         user_details: {
-          email: req.body.user.email,
-          name: req.body.user.name,
-          profile_picture: req.body.user.photo,
+          email: user_details.email,
+          name: user_details.name,
+          profile_picture: user_details.picture,
         },
         isLoggedIn: false,
         partial_login: true,
