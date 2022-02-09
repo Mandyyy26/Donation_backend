@@ -340,5 +340,68 @@ router.put("/mark-as-found", UserAuth, async (req, res) => {
   }
 });
 
+// Search for Lost-Items items
+router.get("/search-lost-found-products", UserAuth, async (req, res) => {
+  try {
+    if (!req.query?.search)
+      return res.status(400).send({ message: "Search Query is Required" });
+
+    // Search for items with the given search query
+    const lost_items = await lostFoundItems.aggregate([
+      {
+        // Match the products with the filter
+        $match: {
+          $text: {
+            $search: req.query.search,
+          },
+        },
+      },
+      // sort them in descending order of _id
+      {
+        $sort: {
+          _id: -1,
+        },
+      },
+      // Replace posted_by field with the user's name
+      {
+        $lookup: {
+          from: "users",
+          localField: "posted_by",
+          foreignField: "_id",
+          as: "posted_by_details",
+        },
+      },
+      {
+        $unwind: "$posted_by_details",
+      },
+      {
+        $addFields: {
+          owner_details: {
+            _id: "$posted_by_details._id",
+            name: "$posted_by_details.name",
+            profile_picture: "$posted_by_details.profile_picture",
+            hostel: "$posted_by_details.hostel",
+            room_number: "$posted_by_details.room_number",
+          },
+        },
+      },
+      // remove unnecessary fields
+      {
+        $project: {
+          __v: 0,
+          posted_by_details: 0,
+        },
+      },
+    ]);
+
+    return res.send({
+      products: lost_items,
+      message: "Search Results for Lost-Items items",
+    });
+  } catch (error) {
+    return res.status(500).send({ message: messages.serverError });
+  }
+});
+
 // export router
 module.exports = router;
