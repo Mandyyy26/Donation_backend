@@ -10,6 +10,10 @@ const chatsSchema = new mongoose.Schema({
     type: Object,
     default: null,
   },
+  last_modified: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 exports.chatsSchema = chatsSchema;

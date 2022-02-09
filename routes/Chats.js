@@ -51,6 +51,12 @@ router.get("/get-chats", UserAuth, async (req, res) => {
           participants: { $all: [user_id] },
         },
       },
+      // Sort by last_modified
+      {
+        $sort: {
+          last_modified: -1,
+        },
+      },
       {
         $addFields: {
           other_user: {
@@ -194,6 +200,12 @@ router.post(
       // Save the message
       await newMessage.save();
 
+      if (req.body.message_datetime) {
+        chatRoom.last_modified = req.body.message_datetime;
+      } else {
+        chatRoom.last_modified = new Date();
+      }
+
       // Save the chatRoom
       await chatRoom.save();
 
@@ -238,6 +250,7 @@ router.put("/mark-as-read", UserAuth, async (req, res) => {
         ...chatRoom.last_message,
         read: true,
       };
+
       await chatRoom.save();
     }
 
