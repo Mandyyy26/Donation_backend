@@ -29,6 +29,7 @@ const User = require("./routes/Users");
 
 // Model Imports
 const { buySellItems } = require("./models/BuySellItem");
+const { lostFoundItems } = require("./models/LostFoundItem");
 
 // Connect to MongoDB
 mongoose
@@ -40,6 +41,14 @@ mongoose
 buySellItems.collection.createIndex({
   name: "text",
   description: "text",
+});
+
+lostFoundItems.collection.createIndex({
+  name: "text",
+  description: "text",
+  brand: "text",
+  category: "text",
+  color: "text",
 });
 
 // Express app initialization
