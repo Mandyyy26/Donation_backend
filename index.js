@@ -27,11 +27,20 @@ const RaisedHands = require("./routes/RaisedHands");
 const Requirements = require("./routes/Requirements");
 const User = require("./routes/Users");
 
+// Model Imports
+const { buySellItems } = require("./models/BuySellItem");
+
 // Connect to MongoDB
 mongoose
   .connect(config.db_url, config.db_config)
   .then(() => console.log(`Connected to ${process.env.DB_Name} Mongo DB...`))
   .catch((error) => console.error(messages.serverError, error));
+
+// Create Indexes for Models
+buySellItems.collection.createIndex({
+  name: "text",
+  description: "text",
+});
 
 // Express app initialization
 const app = express();
