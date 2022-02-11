@@ -63,6 +63,10 @@ async function UploadChatFile(destination, message_file) {
         mimeType: message_file.mimeType,
       };
 
+      // If file type is audio, then add duration property to the payload
+      if (message_file?.mimeType?.slice(0, 5) === "audio")
+        payload.duration = fileUploadResponse.duration * 1000;
+
       return { file: payload, message: "File upload Successfull", ok: true };
     } else {
       return { message: "File upload failed", ok: false };

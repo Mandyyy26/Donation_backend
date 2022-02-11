@@ -1,6 +1,18 @@
 // Packages imports
 const mongoose = require("mongoose");
 
+// These file extensions are supported by the application
+const FileExtensions = [
+  "image/jpeg",
+  "image/png",
+  "image/jpg",
+  "video/mp4",
+  "audio/mp3",
+  "audio/m4a",
+  "audio/wav",
+  "audio/mpeg",
+];
+
 // messages Schema
 const messagesSchema = new mongoose.Schema({
   room_id: {
@@ -34,11 +46,12 @@ const messagesSchema = new mongoose.Schema({
     public_id: String,
     mimeType: {
       type: String,
-      enum: ["image/jpeg", "image/png", "image/jpg", "video/mp4"],
+      enum: FileExtensions,
     },
     uri: String,
     height: Number,
     width: Number,
+    duration: Number,
   },
 });
 
