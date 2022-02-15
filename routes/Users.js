@@ -5,12 +5,7 @@ const multer = require("multer");
 
 // Local imports
 const { CreateOTP } = require("../controllers/OTP");
-const {
-  get_login_payload_data,
-  get_auth_token,
-  get_encoded_data,
-  get_dashboard_stats,
-} = require("../controllers/Users");
+const { get_auth_token, get_encoded_data, get_dashboard_stats } = require("../controllers/Users");
 const messages = require("../config/messages");
 const { resetRequests } = require("../models/ResetPassword");
 const { SendOTPEmail } = require("../utils/Mailer");
@@ -246,24 +241,39 @@ router.put(
       const profile = await users.findById(user_id);
       if (!profile) return res.status(404).send({ message: messages.accountMissing });
 
+      // Check if phone is already taken
+      const checkPhone = await users.findOne({
+        _id: { $ne: user_id },
+        phone: req.body.phone,
+      });
+      if (checkPhone) return res.status(400).send({ message: `Phone already in use.` });
+
+      // Check if room_number is already in use
+      const checkRoomNumber = await users.findOne({
+        _id: { $ne: user_id },
+        hostel: req.body.hostel,
+        room_number: req.body.room_number,
+      });
+      if (checkRoomNumber)
+        return res.status(400).send({
+          message: `Room number ${req.body.room_number} for Hostel ${req.body.hostel} already in use with another account. `,
+        });
+
+      // Incase we changed to search all together
+
+      // const user = await users.findOne({
+      //   _id: { $ne: user_id },
+      //   $or: [
+      //     { $and: [{ hostel: req.body.hostel }, { room_number: req.body.room_number }] },
+      //     { phone: req.body.phone },
+      //   ],
+      // });
+
       // Destination for profile_picture
       const destination = `Kolegia/users/${user_id.toString()}/profile_picture`;
 
-      // Check if email, phone and room_number is already in use
-      const user = await users
-        .findOne()
-        .or([
-          { email: req.body.email },
-          { phone: req.body.phone },
-          { room_number: req.body.room_number },
-        ]);
-
-      if (user)
-        return res.status(400).send({ message: "Email, Phone and Room Number must be unique" });
-
       // Map all the fields to update if they exist
       if (req.body.name) profile.name = req.body.name;
-      if (req.body.email) profile.email = req.body.email;
       if (req.body.hostel) profile.hostel = req.body.hostel;
       if (req.body.phone) profile.phone = req.body.phone;
       if (req.body.room_number) profile.room_number = req.body.room_number;
