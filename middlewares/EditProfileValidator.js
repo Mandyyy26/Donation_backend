@@ -6,17 +6,26 @@ const { Hostels } = require("../schemas/Users");
 
 // Exporting EditProfile Schema
 const EditProfileSchema = Joi.object({
-  name: Joi.string(),
-  email: Joi.string().email(),
+  name: Joi.string().required().messages({
+    "any.required": "Name is required",
+    "string.empty": "Name is required",
+  }),
   hostel: Joi.string()
     .valid(...Hostels)
+    .required()
     .messages({
-      "any.only": "Hostel must be valid",
+      "any.only": `Hostel must be valid. For Ex - ${Hostels.join(", ")}`,
+      "any.required": `Hostel is required.`,
     }),
-  phone: Joi.string().length(10).messages({
+  phone: Joi.string().required().length(10).messages({
     "string.length": "Phone must be valid 10 digit number",
+    "any.required": `Phone is required`,
+    "string.empty": `Phone cannot be an empty.`,
   }),
-  room_number: Joi.string(),
+  room_number: Joi.string().required().messages({
+    "any.required": `Room Number is required`,
+    "string.empty": `Room Number cannot be an empty.`,
+  }),
   user_details: Joi.optional(),
   profile_picture: Joi.optional(),
 }).options({ allowUnknown: false });
@@ -31,8 +40,7 @@ const ValidateEditProfile = (req, res, next) => {
 
   const result = EditProfileSchema.validate(req.body);
 
-  if (result.error)
-    return res.status(400).send({ message: result.error.details[0].message });
+  if (result.error) return res.status(400).send({ message: result.error.details[0].message });
 
   req.body = newBody;
 
