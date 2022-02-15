@@ -14,10 +14,7 @@ const {
 const messages = require("../config/messages");
 const { resetRequests } = require("../models/ResetPassword");
 const { SendOTPEmail } = require("../utils/Mailer");
-const {
-  UploadToCloudinary,
-  UploadToCloudinaryRemote,
-} = require("../utils/Cloudinary");
+const { UploadToCloudinary, UploadToCloudinaryRemote } = require("../utils/Cloudinary");
 const { users } = require("../models/Users");
 const { UserAuth } = require("../middlewares/AuthValidator");
 const { ValidateRegister } = require("../middlewares/RegisterValidator");
@@ -40,21 +37,13 @@ router.post("/login", ValidateLogin, async (req, res) => {
       email: req.body.email,
     });
 
-    if (!user)
-      return res
-        .status(404)
-        .send({ message: messages.accountMissing, isLoggedIn: false });
+    if (!user) return res.status(404).send({ message: messages.accountMissing, isLoggedIn: false });
 
     // check if password is correct
-    const isPasswordCorrect = await bcrypt.compare(
-      req.body.password,
-      user.password
-    );
+    const isPasswordCorrect = await bcrypt.compare(req.body.password, user.password);
 
     if (!isPasswordCorrect)
-      return res
-        .status(400)
-        .send({ message: messages.invalidCredentials, isLoggedIn: false });
+      return res.status(400).send({ message: messages.invalidCredentials, isLoggedIn: false });
 
     // If request body has push_notification_token, update it in the database
     if (req.body.push_notification_token) {
@@ -73,9 +62,7 @@ router.post("/login", ValidateLogin, async (req, res) => {
     });
   } catch (error) {
     // Error Response
-    return res
-      .status(500)
-      .send({ message: messages.serverError, isLoggedIn: false });
+    return res.status(500).send({ message: messages.serverError, isLoggedIn: false });
   }
 });
 
@@ -85,19 +72,14 @@ router.post("/google-login", async (req, res) => {
     const verifyResponse = await VerifyTokenID(req.body.id_token);
 
     if (!verifyResponse.ok) {
-      return res
-        .status(500)
-        .send({ message: "Invalid ID Token", isLoggedIn: false });
+      return res.status(500).send({ message: "Invalid ID Token", isLoggedIn: false });
     }
 
     const user_details = verifyResponse.ticket.getPayload();
 
     const email = user_details?.email;
 
-    if (!email)
-      return res
-        .status(500)
-        .send({ message: "Invalid Email", isLoggedIn: false });
+    if (!email) return res.status(500).send({ message: "Invalid Email", isLoggedIn: false });
 
     const user = await users.findOne({
       email: email,
@@ -130,106 +112,89 @@ router.post("/google-login", async (req, res) => {
       isLoggedIn: true,
     });
   } catch (error) {
-    return res
-      .status(500)
-      .send({ message: messages.serverError, isLoggedIn: false });
+    return res.status(500).send({ message: messages.serverError, isLoggedIn: false });
   }
 });
 
 // Endpoint for Register
-router.post(
-  "/register",
-  upload.single("profile_picture"),
-  ValidateRegister,
-  async (req, res) => {
-    try {
-      // Check if user with same email already exists
-      const user = await users
-        .findOne()
-        .or([
-          { email: req.body.email },
-          { phone: req.body.phone },
-          { roll_number: req.body.roll_number },
-        ]);
+router.post("/register", upload.single("profile_picture"), ValidateRegister, async (req, res) => {
+  try {
+    // Check if user with same email already exists
+    const user = await users
+      .findOne()
+      .or([
+        { email: req.body.email },
+        { phone: req.body.phone },
+        { roll_number: req.body.roll_number },
+      ]);
 
-      if (user)
-        return res.status(400).send({
-          message: "Email, Phone and Roll Number should be unique",
-          isLoggedIn: false,
-        });
+    if (user)
+      return res.status(400).send({
+        message: "Email, Phone and Roll Number should be unique",
+        isLoggedIn: false,
+      });
 
-      // Else create new user instance
-      const newUser = new users(req.body);
-      newUser.email_verified = true;
+    // Else create new user instance
+    const newUser = new users(req.body);
+    newUser.email_verified = true;
 
-      // Destination for profile_picture
-      const destination = `Kolegia/users/${newUser._id}/profile_picture`;
-      const isRemoteImage = req.body.remote_profile_picture ?? false;
-      const isLocalImage = req.body.profile_picture ?? false;
+    // Destination for profile_picture
+    const destination = `Kolegia/users/${newUser._id}/profile_picture`;
+    const isRemoteImage = req.body.remote_profile_picture ?? false;
+    const isLocalImage = req.body.profile_picture ?? false;
 
-      if (isRemoteImage || isLocalImage) {
-        let uploadResponse;
-        // Upload profile_picture if present it req.body
-        if (req.body.remote_profile_picture) {
-          // Upload to Cloudinary if profile_picture is a url
-          uploadResponse = await UploadToCloudinaryRemote(
-            req.body.remote_profile_picture,
-            destination
-          );
-        } else if (req.body.profile_picture) {
-          // Upload profile_picture to cloudinary if file is buffer
-          uploadResponse = await UploadToCloudinary(
-            req.body.profile_picture,
-            destination
-          );
-        }
-
-        // If response is ok, update profile_picture in the database
-        if (uploadResponse?.secure_url?.length)
-          newUser.profile_picture = uploadResponse.secure_url;
-        else
-          return res
-            .status(500)
-            .send({ message: messages.serverError, isLoggedIn: false });
+    if (isRemoteImage || isLocalImage) {
+      let uploadResponse;
+      // Upload profile_picture if present it req.body
+      if (req.body.remote_profile_picture) {
+        // Upload to Cloudinary if profile_picture is a url
+        uploadResponse = await UploadToCloudinaryRemote(
+          req.body.remote_profile_picture,
+          destination
+        );
+      } else if (req.body.profile_picture) {
+        // Upload profile_picture to cloudinary if file is buffer
+        uploadResponse = await UploadToCloudinary(req.body.profile_picture, destination);
       }
 
-      // Hash the password
-      const salt = await bcrypt.genSalt(10);
-      newUser.password = await bcrypt.hash(newUser.password, salt);
-
-      // Create auth_token for a user
-      const auth_token = get_auth_token(newUser._id);
-
-      // Assign the auth_token for the user
-      newUser.auth_token = auth_token;
-
-      // Save the user
-      await newUser.save();
-
-      // Create userData
-      const newUserData = get_encoded_data(newUser);
-
-      // Return response
-      return res.status(200).send({
-        user_token: newUserData,
-        message: "Your account has been created successfully..",
-        isLoggedIn: true,
-      });
-    } catch (error) {
-      // Error response
-      return res
-        .status(500)
-        .send({ message: messages.serverError, isLoggedIn: false });
+      // If response is ok, update profile_picture in the database
+      if (uploadResponse?.secure_url?.length) newUser.profile_picture = uploadResponse.secure_url;
+      else return res.status(500).send({ message: messages.serverError, isLoggedIn: false });
     }
+
+    // Hash the password
+    const salt = await bcrypt.genSalt(10);
+    newUser.password = await bcrypt.hash(newUser.password, salt);
+
+    // Create auth_token for a user
+    const auth_token = get_auth_token(newUser._id);
+
+    // Assign the auth_token for the user
+    newUser.auth_token = auth_token;
+
+    // Save the user
+    await newUser.save();
+
+    // Create userData
+    const newUserData = get_encoded_data(newUser);
+
+    // Return response
+    return res.status(200).send({
+      user_token: newUserData,
+      message: "Your account has been created successfully..",
+      isLoggedIn: true,
+    });
+  } catch (error) {
+    // Error response
+    return res.status(500).send({ message: messages.serverError, isLoggedIn: false });
   }
-);
+});
 
 // Logout endpoint
 router.delete("/logout", UserAuth, async (req, res) => {
   try {
     const user = await users.findOne({ _id: req.body.user_details._id });
-    if (!user)
-      return res.status(404).send({ message: messages.accountMissing });
+    if (!user) return res.status(404).send({ message: messages.accountMissing });
 
     user.push_notification_token = "";
     await user.save();
@@ -250,16 +215,11 @@ router.put("/change-password", UserAuth, async (req, res) => {
       });
 
     let user = await users.findOne({ _id: req.body.user_details._id });
-    if (!user)
-      return res.status(404).send({ message: messages.accountMissing });
+    if (!user) return res.status(404).send({ message: messages.accountMissing });
 
-    const CheckPassword = await bcrypt.compare(
-      req.body.CurrentPassword,
-      user.password
-    );
+    const CheckPassword = await bcrypt.compare(req.body.CurrentPassword, user.password);
 
-    if (!CheckPassword)
-      return res.status(400).send({ message: messages.currentPasswordError });
+    if (!CheckPassword) return res.status(400).send({ message: messages.currentPasswordError });
 
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(req.body.NewPassword, salt);
@@ -284,8 +244,7 @@ router.put(
 
       // find the user
       const profile = await users.findById(user_id);
-      if (!profile)
-        return res.status(404).send({ message: messages.accountMissing });
+      if (!profile) return res.status(404).send({ message: messages.accountMissing });
 
       // Destination for profile_picture
       const destination = `Kolegia/users/${user_id.toString()}/profile_picture`;
@@ -300,9 +259,7 @@ router.put(
         ]);
 
       if (user)
-        return res
-          .status(400)
-          .send({ message: "Email, Phone and Room Number must be unique" });
+        return res.status(400).send({ message: "Email, Phone and Room Number must be unique" });
 
       // Map all the fields to update if they exist
       if (req.body.name) profile.name = req.body.name;
@@ -313,25 +270,21 @@ router.put(
 
       // Upload profile_picture if present it req.body
       if (req.body.profile_picture) {
-        let uploadResponse = await UploadToCloudinary(
-          req.body.profile_picture,
-          destination
-        );
+        let uploadResponse = await UploadToCloudinary(req.body.profile_picture, destination);
 
         // If response is ok, update profile_picture in the database
-        if (uploadResponse?.secure_url?.length)
-          profile.profile_picture = uploadResponse.secure_url;
+        if (uploadResponse?.secure_url?.length) profile.profile_picture = uploadResponse.secure_url;
         else return res.status(500).send({ message: messages.serverError });
       }
 
-      // Create userData
-      const userData = get_login_payload_data(profile);
+      // Create user_token
+      const user_token = get_encoded_data(profile);
 
       // Save the user
       await profile.save();
 
       return res.send({
-        User: userData,
+        user_token: user_token,
         message: "Updated Profile Successfully.",
       });
     } catch (error) {
@@ -344,8 +297,7 @@ router.put(
 router.post("/send-email-register-otp", async (req, res) => {
   try {
     // Check if Body consists of email
-    if (!req.body.email)
-      return res.status(400).send({ message: messages.emailRequired });
+    if (!req.body.email) return res.status(400).send({ message: messages.emailRequired });
 
     // Check if email is already in use
     const user = await users.findOne({ email: req.body.email });
@@ -356,8 +308,7 @@ router.post("/send-email-register-otp", async (req, res) => {
 
     // Create new OTP instance
     const newOtp = await CreateOTP(VERIFICATION_TYPES.EMAIL_VERIFICATION);
-    if (!newOtp.ok)
-      return res.status(500).send({ message: messages.serverError });
+    if (!newOtp.ok) return res.status(500).send({ message: messages.serverError });
 
     // Send Email
     const sendMail = await SendOTPEmail({
@@ -391,8 +342,7 @@ router.post("/send-email-register-otp", async (req, res) => {
 router.post("/send-forgot-password-otp", async (req, res) => {
   try {
     // Check if Body consists of email
-    if (!req.body.email)
-      return res.status(400).send({ message: messages.emailRequired });
+    if (!req.body.email) return res.status(400).send({ message: messages.emailRequired });
 
     // Check if email is already in use
     const user = await users.findOne({ email: req.body.email });
@@ -403,8 +353,7 @@ router.post("/send-forgot-password-otp", async (req, res) => {
 
     // Create new OTP instance
     const newOtp = await CreateOTP(VERIFICATION_TYPES.FORGOT_PASSWORD);
-    if (!newOtp.ok)
-      return res.status(500).send({ message: messages.serverError });
+    if (!newOtp.ok) return res.status(500).send({ message: messages.serverError });
 
     // Send Email
     const sendMail = await SendOTPEmail({
@@ -463,25 +412,17 @@ router.post("/reset-password", async (req, res) => {
     if (!req.body.reset_request_id)
       return res.status(400).send({ message: "Reset Request ID is required" });
 
-    if (!req.body.password)
-      return res.status(400).send({ message: "Password is required" });
+    if (!req.body.password) return res.status(400).send({ message: "Password is required" });
 
-    if (!req.body.email)
-      return res.status(400).send({ message: "Email is required" });
+    if (!req.body.email) return res.status(400).send({ message: "Email is required" });
 
     // Check if request is valid
-    const check_request = await resetRequests.findById(
-      req.body.reset_request_id
-    );
-    if (!check_request)
-      return res.status(400).send({ message: "Invalid Request" });
+    const check_request = await resetRequests.findById(req.body.reset_request_id);
+    if (!check_request) return res.status(400).send({ message: "Invalid Request" });
 
     // Find user
     const user = await users.findOne({ email: req.body.email });
-    if (!user)
-      return res
-        .status(400)
-        .send({ message: "User does not exist with this Email." });
+    if (!user) return res.status(400).send({ message: "User does not exist with this Email." });
 
     // Hash the password
     const salt = await bcrypt.genSalt(10);
