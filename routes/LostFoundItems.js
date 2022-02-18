@@ -23,9 +23,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 router.get("/get-lost-found-feed", UserAuth, async (req, res) => {
   try {
     // Get the products in batches of 10 after this _id
-    let after = req.query?.after
-      ? mongoose.Types.ObjectId(req.query.after)
-      : null;
+    let after = req.query?.after ? mongoose.Types.ObjectId(req.query.after) : null;
 
     // get data in count of
     let count = req.query?.count || 10;
@@ -108,8 +106,7 @@ router.get("/get-lost-found-product-details", UserAuth, async (req, res) => {
     const product = await lostFoundItems.findById(product_id, {
       __v: 0,
     });
-    if (!product)
-      return res.status(404).send({ message: messages.product_not_found });
+    if (!product) return res.status(404).send({ message: messages.product_not_found });
 
     // Convert the product instance into an object
     let product_details = product.toObject();
@@ -164,10 +161,7 @@ router.post(
         const destination = `Kolegia/users/${newProduct.posted_by}/lost-found/${newProduct._id}`;
 
         // Upload multiple files to Cloudinary
-        const uploaded_files = await UploadFilesForPayload(
-          req.body.files,
-          destination
-        );
+        const uploaded_files = await UploadFilesForPayload(req.body.files, destination);
 
         // Assign the files array to the newProduct.files
         newProduct.files = uploaded_files;
@@ -201,8 +195,7 @@ router.put(
 
       // Check if product exists
       const product = await lostFoundItems.findById(req.body.product_id);
-      if (!product)
-        return res.status(404).send({ message: messages.product_not_found });
+      if (!product) return res.status(404).send({ message: messages.product_not_found });
 
       // Check if user is the product's owner
       if (product.posted_by.toString() !== req.body.user_details._id.toString())
@@ -210,7 +203,7 @@ router.put(
 
       // Update product
       // map through the body and assign the new values to the product
-      Object.keys(req.body).map((key) => {
+      Object.keys(req.body).map(key => {
         if (key !== "files") product[key] = req.body[key];
       });
 
@@ -224,10 +217,7 @@ router.put(
         const destination = `Kolegia/users/${product.posted_by}/lost-found/${product._id}`;
 
         // Upload multiple files to Cloudinary
-        const uploaded_files = await UploadFilesForPayload(
-          req.body.files,
-          destination
-        );
+        const uploaded_files = await UploadFilesForPayload(req.body.files, destination);
 
         // Assign the files array to the newProduct.files
         product.files = [...product.files, ...uploaded_files];
@@ -240,7 +230,7 @@ router.put(
 
         // Remove the files from the product.files array whose _id is in the req.body.to_be_deleted array
         product.files = product.files.filter(
-          (file) => !req.body.to_be_deleted.includes(file.public_id)
+          file => !req.body.to_be_deleted.includes(file.public_id)
         );
       }
 
@@ -262,17 +252,14 @@ router.delete("/delete-lost-found-product", UserAuth, async (req, res) => {
 
     // check if Product exists
     const product = await lostFoundItems.findById(req.body.product_id);
-    if (!product)
-      return res.status(404).send({ message: messages.product_not_found });
+    if (!product) return res.status(404).send({ message: messages.product_not_found });
 
     // check if user is the product's owner
     if (product.posted_by.toString() !== req.body.user_details._id.toString())
       return res.status(401).send({ message: messages.unauthorized });
 
     // Delete folder from cloudinary
-    await DeleteAFolder(
-      `Kolegia/users/${product.posted_by}/lost-found/${product._id}`
-    );
+    await DeleteAFolder(`Kolegia/users/${product.posted_by}/lost-found/${product._id}`);
 
     // Delete product
     await product.delete();
@@ -316,8 +303,7 @@ router.put("/mark-as-found", UserAuth, async (req, res) => {
 
     // check if product exists
     const product = await lostFoundItems.findById(req.body.product_id);
-    if (!product)
-      return res.status(404).send({ message: messages.product_not_found });
+    if (!product) return res.status(404).send({ message: messages.product_not_found });
 
     // check if user is the product's owner
     if (product.posted_by.toString() !== req.body.user_details._id.toString())
@@ -343,8 +329,7 @@ router.put("/mark-as-found", UserAuth, async (req, res) => {
 // Search for Lost-Items items
 router.get("/search-lost-found-products", UserAuth, async (req, res) => {
   try {
-    if (!req.query?.search)
-      return res.status(400).send({ message: "Search Query is Required" });
+    if (!req.query?.search) return res.status(400).send({ message: "Search Query is Required" });
 
     // Search for items with the given search query
     const lost_items = await lostFoundItems.aggregate([
