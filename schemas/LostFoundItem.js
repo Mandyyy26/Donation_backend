@@ -29,6 +29,10 @@ const lostFoundSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
+  other_category_name: {
+    type: String,
+    default: "",
+  },
   color: {
     type: String,
     default: "",
