@@ -28,7 +28,7 @@ const EditProfileSchema = Joi.object({
   }),
   user_details: Joi.optional(),
   profile_picture: Joi.optional(),
-}).options({ allowUnknown: false });
+}).options({ allowUnknown: true });
 
 const ValidateEditProfile = (req, res, next) => {
   let newBody = {

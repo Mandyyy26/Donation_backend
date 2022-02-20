@@ -58,7 +58,7 @@ const LostItemSchema = Joi.object({
 
   user_details: Joi.any(),
   product_id: Joi.string().optional(),
-}).options({ allowUnknown: false });
+}).options({ allowUnknown: true });
 
 const ValidateLostFound = (req, res, next) => {
   let files = [];

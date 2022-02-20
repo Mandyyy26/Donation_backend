@@ -69,7 +69,7 @@ const BuySellSchema = Joi.object({
 
   user_details: Joi.any(),
   product_id: Joi.string().optional(),
-}).options({ allowUnknown: false });
+}).options({ allowUnknown: true });
 
 // Validate Buy Sell Body and arrange buffer files
 const ValidateBuySell = (req, res, next) => {
