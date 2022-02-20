@@ -1,8 +1,10 @@
 // Packages Imports
 const { omit } = require("lodash");
 const { chats } = require("../models/Chats");
+const { buySellItems } = require("../models/BuySellItem");
 const { lostFoundItems } = require("../models/LostFoundItem");
 const { raisedHands } = require("../models/RaisedHands");
+const { requirements } = require("../models/Requirements");
 const { users } = require("../models/Users");
 
 // Local imports
@@ -11,12 +13,7 @@ const { JWT_Sign } = require("./JWT");
 // function to get the user data while logging in
 function get_login_payload_data(user = {}) {
   // Create payload
-  const payload = omit(user.toObject(), [
-    "password",
-    "admin",
-    "__v",
-    "push_notification_token",
-  ]);
+  const payload = omit(user.toObject(), ["password", "admin", "__v", "push_notification_token"]);
 
   return payload;
 }
@@ -52,6 +49,12 @@ async function get_dashboard_stats(req) {
       found_by_someone: true,
     });
 
+    // get total buy items
+    const buy_sell_items_count = await buySellItems.countDocuments();
+
+    // get total required items
+    const required_items_count = await requirements.countDocuments();
+
     // get total users
     const users_count = await users.countDocuments({});
 
@@ -75,6 +78,8 @@ async function get_dashboard_stats(req) {
       users_count,
       raised_hands_count,
       unread_messages_count,
+      buy_sell_items_count,
+      required_items_count,
     };
 
     return payload;
