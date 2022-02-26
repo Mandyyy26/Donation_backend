@@ -15,6 +15,11 @@ Kolegia is a platform where users can post their lost items and find them. Users
 - If someone wants to raise a hand on a lost item, they can easily do that.
 - Light/Dark Mode support.
 
+## Link to other Repos related to Kolegia
+
+1. [Frontend Web application](https://github.com/adarsharyan002/Kolegia_FrontEnd) 
+2. [Mobile Application](https://github.com/kartikeyvaish/Kolegia_Mobile)
+
 ## Development Setup
 
 To set up Kolegia for development, you need to install the following dependencies:
