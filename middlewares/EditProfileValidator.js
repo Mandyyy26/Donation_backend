@@ -2,7 +2,7 @@
 const Joi = require("joi");
 
 // Local Imports
-const { Hostels } = require("../schemas/Users");
+// const { Hostels } = require("../schemas/Users");
 
 // Exporting EditProfile Schema
 const EditProfileSchema = Joi.object({
@@ -10,13 +10,7 @@ const EditProfileSchema = Joi.object({
     "any.required": "Name is required",
     "string.empty": "Name is required",
   }),
-  hostel: Joi.string()
-    .valid(...Hostels)
-    .required()
-    .messages({
-      "any.only": `Hostel must be valid. For Ex - ${Hostels.join(", ")}`,
-      "any.required": `Hostel is required.`,
-    }),
+
   phone: Joi.string().required().length(10).messages({
     "string.length": "Phone must be valid 10 digit number",
     "any.required": `Phone is required`,

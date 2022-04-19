@@ -2,7 +2,7 @@
 const Joi = require("joi");
 
 // Local Imports
-const { Batch, Hostels, Years } = require("../schemas/Users");
+// const { Batch, Hostels, Years } = require("../schemas/Users");
 
 // Min and Max Password Length
 const MinPasswordLen = 6;
@@ -15,26 +15,8 @@ const RegisterSchema = Joi.object({
     "string.empty": "Name is required",
   }),
   email: Joi.string().email().required("Email is required"),
-  year: Joi.string()
-    .required("Year is required")
-    .valid(...Years)
-    .messages({
-      "any.only":
-        "Year must be valid. For Ex - 2019. Students before 2017 and after 2021  are not allowed",
-    }),
-  batch: Joi.string()
-    .required("Batch is required")
-    .valid(...Batch)
-    .messages({
-      "any.only": "Batch must be valid. For Ex - BCS, IMT, IMG",
-    }),
-  hostel: Joi.string()
-    .required("Hostel is required")
-    .valid(...Hostels)
-    .messages({
-      "any.only": `Hostel must be valid. For Ex - ${Hostels.join(", ")}`,
-      "any.required": `Hostel is required.`,
-    }),
+ 
+ 
   phone: Joi.string().required("Phone is required").length(10).messages({
     "string.length": "Phone must be valid 10 digit number",
     "any.required": `Phone is required`,
